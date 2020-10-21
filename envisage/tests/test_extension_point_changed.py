@@ -34,6 +34,8 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         listener.old = None
         listener.new = None
 
+        self.observed_events = []
+
     def test_set_extension_point(self):
         """ set extension point """
 
@@ -51,6 +53,7 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
 
         a = PluginA()
         a.on_trait_change(listener, "x_items")
+        a.observe(self.observed_events.append, "x:items")
         b = PluginB()
         c = PluginC()
 
@@ -86,6 +89,32 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([4], listener.new.added)
         self.assertEqual([], listener.new.removed)
         self.assertEqual(3, listener.new.index)
+
+    def test_append_notify_observer(self):
+        """ append with observe """
+
+        a = PluginA()
+        a.observe(self.observed_events.append, "x:items")
+        b = PluginB()
+        c = PluginC()
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Append a contribution.
+        b.x.append(4)
+
+        self.assertEqual(len(self.observed_events), 1)
+        event, = self.observed_events
+        self.assertEqual(a, event.object)
+        self.assertEqual([4], event.added)
+        self.assertEqual([], event.removed)
+        self.assertEqual(3, event.index)
 
     def test_remove(self):
         """ remove """
