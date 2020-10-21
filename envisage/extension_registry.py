@@ -70,9 +70,12 @@ class ExtensionRegistry(HasTraits):
     ###########################################################################
 
     # A dictionary of extensions, keyed by extension point.
+    # Mapping from extension point id (str) to a list of extensions contributed
+    # to it.
     _extensions = Dict
 
     # The extension points that have been added *explicitly*.
+    # Mapping from ExtensionPoint id (str) to ExtensionPoint
     _extension_points = Dict
 
     # Extension listeners.
