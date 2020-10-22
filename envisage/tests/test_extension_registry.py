@@ -18,6 +18,7 @@ from envisage.api import Application, ExtensionPoint
 from envisage.api import ExtensionRegistry
 from traits.api import List
 
+from envisage.extension_registry import ObservableExtensionRegistry
 from envisage.tests.test_extension_registry_mixin import (
     ExtensionRegistryTestMixin
 )
@@ -197,3 +198,11 @@ class ExtensionPointListenerLifetimeTestCase(unittest.TestCase):
             diff, 0,
             msg="Expected no new elements; got {}".format(diff),
         )
+
+
+class ObservableExtensionRegistryTestCase(
+        ExtensionRegistryTestMixin, unittest.TestCase):
+    """ Tests for the base (?) observable extension registry. """
+
+    def setUp(self):
+        self.registry = ObservableExtensionRegistry()

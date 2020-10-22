@@ -226,3 +226,53 @@ class ExtensionRegistry(HasTraits):
         refs.extend(self._listeners.get(None, []))
 
         return refs
+
+
+@provides(IExtensionRegistry)
+class ObservableExtensionRegistry(HasTraits):
+    """ A replacement for ExtensionRegistry to support Traits observe
+    framework. Since ExtensionRegistry is a base class, this will have
+    to be a base class too (?).
+
+    Requires Traits 6.1+
+    """
+
+    ###########################################################################
+    # 'IExtensionRegistry' interface.
+    ###########################################################################
+
+    def add_extension_point_listener(self, listener, extension_point_id=None):
+        """ Reimplemented IExtensionRegistry.add_extension_point_listener """
+        pass
+
+    def add_extension_point(self, extension_point):
+        """ Reimplemented IExtensionRegistry.add_extension_point """
+        pass
+
+    def get_extensions(self, extension_point_id):
+        """ Reimplemented IExtensionRegistry.get_extensions """
+        return []
+
+    def get_extension_point(self, extension_point_id):
+        """ Reimplemented IExtensionRegistry.get_extension_point """
+        from envisage.extension_point import ExtensionPoint
+        return ExtensionPoint(id="dummy")
+
+    def get_extension_points(self):
+        """ Reimplemented IExtensionRegistry.get_extension_points """
+        return []
+
+    def remove_extension_point_listener(
+        self, listener, extension_point_id=None
+    ):
+        """ Reimplemented IExtensionRegistry.remove_extension_point_listener
+        """
+        pass
+
+    def remove_extension_point(self, extension_point_id):
+        """ Reimplemented IExtensionRegistry.remove_extension_point """
+        pass
+
+    def set_extensions(self, extension_point_id, extensions):
+        """ Reimplemented IExtensionRegistry.set_extensions """
+        pass
