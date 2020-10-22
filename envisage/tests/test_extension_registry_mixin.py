@@ -21,7 +21,13 @@ from traits.api import List
 class ExtensionRegistryTestMixin:
     """ Base set of tests for extension registry and its subclasses.
 
-    Test cases inherriting from this mixin should define a setUp method that
+    Note that tests from this mixin has a limited coverage: It must not depend
+    on the functionality of ``IExtensionPointRegistry.set_extensions``.
+
+    See ``SettableExtensionRegistryTestMixin`` for the other tests that
+    depend on ``IExtensionPointRegistry.set_extensions``.
+
+    Test cases inheriting from this mixin should define a setUp method that
     defines self.registry as an instance of ExtensionPointRegistry.
     """
 
@@ -108,3 +114,37 @@ class ExtensionRegistryTestMixin:
         """ Create an extension point. """
 
         return ExtensionPoint(id=id, trait_type=trait_type, desc=desc)
+
+
+class SettableExtensionRegistryTestMixin:
+    """ Base set of tests to test functionality of IExtensionPointRegistry
+    that depends on ``IExtensionPointRegistry.set_extensions``.
+
+    Test cases inheriting from this mixin should define a setUp method that
+    defines self.registry as an instance of ExtensionPointRegistry.
+    """
+
+    def test_add_extension_point_listener_with_id(self):
+        """ test adding extension point listener and its outcome."""
+
+        registry = self.registry
+        events = []
+
+        def listener(registry, extension_point_event):
+            events.append((registry, extension_point_event))
+
+        registry.add_extension_point(self.create_extension_point("my.ep"))
+        registry.add_extension_point_listener(listener, "my.ep")
+
+        # when
+        old_extensions = registry.get_extensions("my.ep")
+        new_extensions = [[1, 2]]
+        registry.set_extensions("my.ep", new_extensions)
+
+        # then
+        self.assertEqual(len(events), 1)
+        (actual_registry, actual_event), = events
+        self.assertEqual(actual_event.extension_point_id, "my.ep")
+        self.assertIsNone(actual_event.index)
+        self.assertEqual(actual_event.added, new_extensions)
+        self.assertEqual(actual_event.removed, old_extensions)

@@ -20,11 +20,16 @@ from traits.api import List
 
 from envisage.extension_registry import ObservableExtensionRegistry
 from envisage.tests.test_extension_registry_mixin import (
-    ExtensionRegistryTestMixin
+    ExtensionRegistryTestMixin,
+    SettableExtensionRegistryTestMixin,
 )
 
 
-class ExtensionRegistryTestCase(ExtensionRegistryTestMixin, unittest.TestCase):
+class ExtensionRegistryTestCase(
+        ExtensionRegistryTestMixin,
+        SettableExtensionRegistryTestMixin,
+        unittest.TestCase,
+    ):
     """ Tests for the base extension registry. """
 
     def setUp(self):
