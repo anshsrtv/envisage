@@ -45,42 +45,42 @@ class Plugin(ExtensionProvider):
 
     #### 'IPlugin' interface ##################################################
 
-    # The activator used to start and stop the plugin.
-    #
-    # By default the *same* activator instance is used for *all* plugins of
-    # this type.
+    #: The activator used to start and stop the plugin.
+    #:
+    #: By default the *same* activator instance is used for *all* plugins of
+    #: this type.
     activator = Instance(IPluginActivator, PluginActivator())
 
-    # The application that the plugin is part of.
+    #: The application that the plugin is part of.
     application = Instance(IApplication)
 
-    # The name of a directory (created for you) that the plugin can read and
-    # write to at will.
+    #: The name of a directory (created for you) that the plugin can read and
+    #: write to at will.
     home = Str
 
-    # The plugin's unique identifier.
-    #
-    # If no identifier is specified then the module and class name of the
-    # plugin are used to create an Id with the form 'module_name.class_name'.
+    #: The plugin's unique identifier.
+    #:
+    #: If no identifier is specified then the module and class name of the
+    #: plugin are used to create an Id with the form 'module_name.class_name'.
     id = Str
 
-    # The plugin's name (suitable for displaying to the user).
-    #
-    # If no name is specified then the plugin's class name is used with an
-    # attempt made to turn camel-case class names into words separated by
-    # spaces (e.g. if the class name is 'MyPlugin' then the name would be
-    # 'My Plugin'). Of course, if you really care about the actual name, then
-    # just set it!
+    #: The plugin's name (suitable for displaying to the user).
+    #:
+    #: If no name is specified then the plugin's class name is used with an
+    #: attempt made to turn camel-case class names into words separated by
+    #: spaces (e.g. if the class name is 'MyPlugin' then the name would be
+    #: 'My Plugin'). Of course, if you really care about the actual name, then
+    #: just set it!
     name = Str
 
     #### 'IExtensionPointUser' interface ######################################
 
-    # The extension registry that the object's extension points are stored in.
+    #: The extension registry that the object's extension points are stored in.
     extension_registry = Property(Instance(IExtensionRegistry))
 
     #### 'IServiceUser' interface #############################################
 
-    # The service registry that the object's services are stored in.
+    #: The service registry that the object's services are stored in.
     service_registry = Property(Instance(IServiceRegistry))
 
     #### Private interface ####################################################
@@ -188,7 +188,10 @@ class Plugin(ExtensionProvider):
         """ Trait initializer. """
 
         id = "%s.%s" % (type(self).__module__, type(self).__name__)
-        logger.warning("plugin %s has no Id - using <%s>" % (self, id))
+        logger.warning(
+            "plugin {} has no Id - using <{}>".format(
+                object.__repr__(self), id)
+        )
 
         return id
 
@@ -196,7 +199,10 @@ class Plugin(ExtensionProvider):
         """ Trait initializer. """
 
         name = camel_case_to_words(type(self).__name__)
-        logger.warning("plugin %s has no name - using <%s>" % (self, name))
+        logger.warning(
+            "plugin {} has no name - using <{}>".format(
+                object.__repr__(self), name)
+        )
 
         return name
 
@@ -427,3 +433,11 @@ class Plugin(ExtensionProvider):
             return getattr(self, trait_name)
 
         return self.application.register_service(protocol, factory)
+
+    ###########################################################################
+    # 'object' interface.
+    ###########################################################################
+
+    def __repr__(self):
+        """ String representation of a Plugin object """
+        return "Plugin(id={!r}, name={!r})".format(self.id, self.name)
