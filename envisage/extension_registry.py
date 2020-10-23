@@ -16,10 +16,13 @@ import types
 import weakref
 
 # Enthought library imports.
-from traits.api import ComparisonMode, Dict, HasTraits, List, provides, Str
+from traits.api import (
+    ComparisonMode, Dict, HasTraits, Instance, List, provides, Str,
+)
 from traits.observation.api import trait
 
 # Local imports.
+from .extension_point import ExtensionPoint
 from .extension_point_changed_event import ExtensionPointChangedEvent
 from .i_extension_registry import IExtensionRegistry
 from .unknown_extension_point import UnknownExtensionPoint
@@ -251,6 +254,9 @@ class ObservableExtensionRegistry(HasTraits):
         comparison_mode=ComparisonMode.identity,
     )
 
+    # Mapping from extension point id (str) to the ExtensionPoint
+    _id_to_extension_point = Dict(Str, Instance(ExtensionPoint))
+
     ###########################################################################
     # 'IExtensionRegistry' interface.
     ###########################################################################
@@ -268,7 +274,7 @@ class ObservableExtensionRegistry(HasTraits):
 
     def add_extension_point(self, extension_point):
         """ Reimplemented IExtensionRegistry.add_extension_point """
-        pass
+        self._id_to_extension_point[extension_point.id] = extension_point
 
     def get_extensions(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.get_extensions """
@@ -281,7 +287,7 @@ class ObservableExtensionRegistry(HasTraits):
 
     def get_extension_points(self):
         """ Reimplemented IExtensionRegistry.get_extension_points """
-        return []
+        return list(self._id_to_extension_point.values())
 
     def remove_extension_point_listener(
         self, listener, extension_point_id=None

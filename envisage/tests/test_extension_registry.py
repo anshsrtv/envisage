@@ -206,7 +206,10 @@ class ExtensionPointListenerLifetimeTestCase(unittest.TestCase):
 
 
 class ObservableExtensionRegistryTestCase(
-        SettableExtensionRegistryTestMixin, unittest.TestCase):
+        ExtensionRegistryTestMixin,
+        SettableExtensionRegistryTestMixin,
+        unittest.TestCase,
+    ):
     """ Tests for the base (?) observable extension registry. """
 
     def setUp(self):
