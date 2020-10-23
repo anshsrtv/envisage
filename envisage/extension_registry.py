@@ -16,7 +16,8 @@ import types
 import weakref
 
 # Enthought library imports.
-from traits.api import Dict, HasTraits, provides
+from traits.api import ComparisonMode, Dict, HasTraits, List, provides, Str
+from traits.observation.api import trait
 
 # Local imports.
 from .extension_point_changed_event import ExtensionPointChangedEvent
@@ -237,13 +238,33 @@ class ObservableExtensionRegistry(HasTraits):
     Requires Traits 6.1+
     """
 
+    # Mapping from extension point id (str) to a list of list of extensions
+    # contributed to it.
+    # Each item in the outer list is a list of extensions contributed by
+    # a given plugin.
+    _id_to_contrib = Dict(
+        Str,
+        List(
+            List(comparison_mode=ComparisonMode.identity),
+            comparison_mode=ComparisonMode.identity,
+        ),
+        comparison_mode=ComparisonMode.identity,
+    )
+
     ###########################################################################
     # 'IExtensionRegistry' interface.
     ###########################################################################
 
     def add_extension_point_listener(self, listener, extension_point_id=None):
         """ Reimplemented IExtensionRegistry.add_extension_point_listener """
-        pass
+
+        self.observe(
+            self._create_observer_handler(
+                listener=listener,
+                extension_point_id=extension_point_id,
+            ),
+            trait("_id_to_contrib").dict_items(),
+        )
 
     def add_extension_point(self, extension_point):
         """ Reimplemented IExtensionRegistry.add_extension_point """
@@ -275,4 +296,31 @@ class ObservableExtensionRegistry(HasTraits):
 
     def set_extensions(self, extension_point_id, extensions):
         """ Reimplemented IExtensionRegistry.set_extensions """
-        pass
+        self._id_to_contrib[extension_point_id] = extensions
+
+    def _create_observer_handler(self, listener, extension_point_id):
+        """ Create a handler that can be used as the handler in
+        ``HasTraits.observe`` such that the listener receives the same content
+        as specified in add_extension_point_listener.
+
+        Parameters
+        ----------
+        listener : callable(IExtensionRegistry, ExtensionPointChangedEvent)
+            Listener with a signature defined by the IExtensionRegistry
+            interface.
+        extension_point_id : str
+            Id of the extension point being observed.
+        """
+
+        def handler(event):
+            listener(
+                self,
+                ExtensionPointChangedEvent(
+                    extension_point_id=extension_point_id,
+                    added=event.added.get(extension_point_id, []),
+                    removed=event.removed.get(extension_point_id, []),
+                    index=None,
+                )
+            )
+
+        return handler

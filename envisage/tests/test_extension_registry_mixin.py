@@ -133,7 +133,7 @@ class SettableExtensionRegistryTestMixin:
         def listener(registry, extension_point_event):
             events.append((registry, extension_point_event))
 
-        registry.add_extension_point(self.create_extension_point("my.ep"))
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
         registry.add_extension_point_listener(listener, "my.ep")
 
         # when
