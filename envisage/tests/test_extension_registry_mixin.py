@@ -164,6 +164,20 @@ class SettableExtensionRegistryTestMixin:
         # And that the extensions are gone too.
         self.assertEqual([], registry.get_extensions("my.ep"))
 
+    def test_set_extensions(self):
+        """ set extensions """
+
+        registry = self.registry
+
+        # Add an extension *point*.
+        registry.add_extension_point(self.create_extension_point("my.ep"))
+
+        # Set some extensions.
+        registry.set_extensions("my.ep", [1, 2, 3])
+
+        # Make sure we can get them.
+        self.assertEqual([1, 2, 3], registry.get_extensions("my.ep"))
+
     def test_get_nonempty_extensions(self):
         """ test get nonempty extensions after setting it. """
 
