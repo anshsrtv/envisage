@@ -124,16 +124,33 @@ class SettableExtensionRegistryTestMixin:
     defines self.registry as an instance of ExtensionPointRegistry.
     """
 
-    def test_add_extension_point_listener_with_id(self):
-        """ test adding extension point listener and its outcome."""
+    def get_listener(self):
+        """ Return a listener callable and the events list for inspecting
+        the captured events.
 
-        registry = self.registry
+        The event list should hold the call arguments to the listener.
+        This provides the functionality of mock.Mock.call_args_list but
+        without depending on all the magic offered by Mock.
+
+        Returns
+        -------
+        listener: callable(ExtensionRegistry, ExtensionPointEvent)
+        events : list
+        """
         events = []
 
         def listener(registry, extension_point_event):
             events.append((registry, extension_point_event))
 
+        return listener, events
+
+    def test_add_extension_point_listener_with_matching_id(self):
+        """ test adding extension point listener and its outcome."""
+
+        registry = self.registry
         registry.add_extension_point(ExtensionPoint(id="my.ep"))
+
+        listener, events = self.get_listener()
         registry.add_extension_point_listener(listener, "my.ep")
 
         # when
@@ -148,3 +165,21 @@ class SettableExtensionRegistryTestMixin:
         self.assertIsNone(actual_event.index)
         self.assertEqual(actual_event.added, new_extensions)
         self.assertEqual(actual_event.removed, old_extensions)
+
+    def test_add_extension_point_listener_non_matching_id(self):
+        """ test when the extension id does not match, listener is not fired.
+        """
+
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
+
+        listener, events = self.get_listener()
+        registry.add_extension_point_listener(listener, "my.ep")
+
+        # setting a different extension should not fire listener
+        # when
+        registry.set_extensions("my.ep2", [[]])
+
+        # then
+        self.assertEqual(len(events), 0)

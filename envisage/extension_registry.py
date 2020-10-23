@@ -313,6 +313,11 @@ class ObservableExtensionRegistry(HasTraits):
         """
 
         def handler(event):
+
+            if (extension_point_id not in event.added
+                    and extension_point_id not in event.removed):
+                return
+
             listener(
                 self,
                 ExtensionPointChangedEvent(
