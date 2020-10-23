@@ -301,7 +301,34 @@ class ObservableExtensionRegistry(HasTraits):
 
     def set_extensions(self, extension_point_id, extensions):
         """ Reimplemented IExtensionRegistry.set_extensions """
+
+        self._check_extension_point(extension_point_id)
+
         self._id_to_contrib[extension_point_id] = extensions
+
+    ###########################################################################
+    # Protected 'ObservableExtensionRegistry' interface.
+    ###########################################################################
+
+    def _check_extension_point(self, extension_point_id):
+        """ Check to see if the extension point exists.
+
+        Parameters
+        ----------
+        extension_point_id : str
+            Extension point id to check
+
+        Raises
+        ------
+        UnknownExtensionPoint
+            If the extension point does not exist.
+        """
+        if extension_point_id not in self._id_to_extension_point:
+            raise UnknownExtensionPoint(extension_point_id)
+
+    ###########################################################################
+    # Private 'ObservableExtensionRegistry' interface.
+    ###########################################################################
 
     def _create_observer_handler(self, listener, extension_point_id):
         """ Create a handler that can be used as the handler in

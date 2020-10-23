@@ -275,3 +275,11 @@ class SettableExtensionRegistryTestMixin:
         self.assertEqual(
             registry.get_extensions("my.ep"), [[1, 2], [3, 4], [5, 6]]
         )
+
+    def test_set_extensions_with_unknown_extension_point_id(self):
+        """ Test set_extensions raises UnknownExtensionPoint
+        if the extension point has not been added in the first place.
+        """
+        registry = self.registry
+        with self.assertRaises(UnknownExtensionPoint):
+            registry.set_extensions("i.do.not.exist", [[1]])

@@ -87,4 +87,7 @@ class IExtensionRegistry(Interface):
     def set_extensions(self, extension_point_id, extensions):
         """ Set the extensions contributed to an extension point.
 
+        Raise an 'UnknownExtensionPoint' exception if no extension point exists
+        with the specified Id.
+
         """
