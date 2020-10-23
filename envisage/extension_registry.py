@@ -314,7 +314,8 @@ class ObservableExtensionRegistry(HasTraits):
 
         def handler(event):
 
-            if (extension_point_id not in event.added
+            if (extension_point_id is not None
+                    and extension_point_id not in event.added
                     and extension_point_id not in event.removed):
                 return
 

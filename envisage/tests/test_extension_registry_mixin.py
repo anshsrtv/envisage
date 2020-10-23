@@ -183,3 +183,25 @@ class SettableExtensionRegistryTestMixin:
 
         # then
         self.assertEqual(len(events), 0)
+
+    def test_add_extension_point_listener_none(self):
+        """ Listen to all extension points if extension_point_id is none """
+
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
+
+        listener, events = self.get_listener()
+        registry.add_extension_point_listener(listener, None)
+
+        # when
+        registry.set_extensions("my.ep2", [[]])
+
+        # then
+        self.assertEqual(len(events), 1)
+
+        # when
+        registry.set_extensions("my.ep", [[]])
+
+        # then
+        self.assertEqual(len(events), 2)
