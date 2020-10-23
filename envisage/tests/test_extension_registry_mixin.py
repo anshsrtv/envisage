@@ -8,8 +8,11 @@
 #
 # Thanks for using Enthought open source!
 """
-Base set of tests for extension registry and its subclasses wrapped in a
-mixin class.
+
+This module offers mixin classes for testing implementations of
+``IExtensionRegistry``.
+
+All mixin classes should be complementary.
 """
 
 import contextlib
@@ -21,16 +24,12 @@ from traits.api import List
 
 
 class ExtensionRegistryTestMixin:
-    """ Base set of tests for extension registry and its subclasses.
-
-    Note that tests from this mixin has a limited coverage: It must not depend
-    on the functionality of ``IExtensionPointRegistry.set_extensions``.
-
-    See ``SettableExtensionRegistryTestMixin`` for the other tests that
-    depend on ``IExtensionPointRegistry.set_extensions``.
+    """ Base set of tests for testing generic functionality on
+    ``IExtensionRegistry`` without depending on
+    ``IExtensionRegistry.set_extensions`` (for historical reasons).
 
     Test cases inheriting from this mixin should define a setUp method that
-    defines self.registry as an instance of ExtensionPointRegistry.
+    defines self.registry as an instance that implements IExtensionRegistry.
     """
 
     def test_empty_registry(self):
@@ -137,18 +136,11 @@ class ExtensionRegistryTestMixin:
 
 
 class SettableExtensionRegistryTestMixin:
-    """ Base set of tests to test functionality of IExtensionPointRegistry
-    that depends on ``IExtensionPointRegistry.set_extensions`` but excludes
-    tests on listeners.
+    """ Base set of tests for functionality of ``IExtensionRegistry``
+    that depends on ``IExtensionRegistry.set_extensions``.
 
     Test cases inheriting from this mixin should define a setUp method that
-    defines self.registry as an instance of ExtensionPointRegistry.
-
-    See ``ExtensionRegistryTestMixin`` for generic tests that do not require
-    ``set_extensions``.
-
-    See ``ListeningExtensionRegistryTestMixin`` for tests on listener
-    functionality.
+    defines self.registry as an instance that implements IExtensionRegistry.
     """
 
     def test_get_nonempty_extensions(self):
@@ -232,11 +224,10 @@ class ListensToExtensionPoint:
 
 
 class ListeningExtensionRegistryTestMixin:
-    """ Mixin to offer tests that test the listener functionality on an
-    IExtensionRegistry.
+    """ Base set of tests for listener functionality of ``IExtensionRegistry``.
 
-    Subclass must provide an attribute ``registry`` which is an
-    ``IExtensionRegistry`.`
+    Test cases inheriting from this mixin should define a setUp method that
+    defines self.registry as an instance that implements IExtensionRegistry.
     """
 
     def get_object_with_listener_method(self):
