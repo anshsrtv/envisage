@@ -18,7 +18,7 @@ import weakref
 
 # Enthought library imports.
 from traits.api import (
-    Callable, ComparisonMode, Dict, HasTraits, Instance, List, provides, Str,
+    ComparisonMode, Dict, HasTraits, Instance, List, provides, Str,
 )
 from traits.observation.api import trait, observe
 

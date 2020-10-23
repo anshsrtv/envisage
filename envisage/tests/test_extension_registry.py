@@ -10,13 +10,11 @@
 """ Tests for the base extension registry. """
 
 # Standard library imports.
-import contextlib
 import unittest
 
 # Enthought library imports.
-from envisage.api import Application, ExtensionPoint
+from envisage.api import Application
 from envisage.api import ExtensionRegistry
-from traits.api import List
 
 from envisage.extension_registry import ObservableExtensionRegistry
 from envisage.tests.test_extension_registry_mixin import (
@@ -31,7 +29,7 @@ class ExtensionRegistryTestCase(
         SettableExtensionRegistryTestMixin,
         ListeningExtensionRegistryTestMixin,
         unittest.TestCase,
-    ):
+):
     """ Tests for the base extension registry. """
 
     def setUp(self):
@@ -82,7 +80,7 @@ class ObservableExtensionRegistryTestCase(
         SettableExtensionRegistryTestMixin,
         ListeningExtensionRegistryTestMixin,
         unittest.TestCase,
-    ):
+):
     """ Tests for the base (?) observable extension registry. """
 
     def setUp(self):
