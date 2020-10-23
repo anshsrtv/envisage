@@ -263,7 +263,7 @@ class ObservableExtensionRegistry(HasTraits):
                 listener=listener,
                 extension_point_id=extension_point_id,
             ),
-            trait("_id_to_contrib").dict_items(),
+            trait("_id_to_contrib", notify=False).dict_items(),
         )
 
     def add_extension_point(self, extension_point):
@@ -313,6 +313,9 @@ class ObservableExtensionRegistry(HasTraits):
         """
 
         def handler(event):
+            """ Handle a DictChangeEvent when the content of _id_to_contrib
+            is mutated.
+            """
 
             if (extension_point_id is not None
                     and extension_point_id not in event.added
