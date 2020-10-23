@@ -87,6 +87,34 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([], listener.new.removed)
         self.assertEqual(3, listener.new.index)
 
+    def test_append_with_observe(self):
+        """ append """
+
+        events = []
+        a = PluginA()
+        a.observe(events.append, "x:items")
+        b = PluginB()
+        c = PluginC()
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Append a contribution.
+        b.x.append(4)
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.obj, a)
+        self.assertEqual(event.index, 3)
+        self.assertEqual(event.added, [4])
+        self.assertEqual(event.removed, [])
+
     def test_remove(self):
         """ remove """
 
