@@ -112,22 +112,6 @@ class ExtensionPointListenerLifetimeTestCase(unittest.TestCase):
         # A place to record events that listeners receive.
         self.events = []
 
-    def test_add_nonmethod_listener(self):
-        listener = make_function_listener(self.events)
-        self.registry.add_extension_point_listener(listener, "my.ep")
-
-        with self.assertAppendsTo(self.events):
-            self.registry.set_extensions("my.ep", [1, 2, 3])
-
-    def test_remove_nonmethod_listener(self):
-        listener = make_function_listener(self.events)
-
-        self.registry.add_extension_point_listener(listener, "my.ep")
-        self.registry.remove_extension_point_listener(listener, "my.ep")
-
-        with self.assertDoesNotModify(self.events):
-            self.registry.set_extensions("my.ep", [4, 5, 6, 7])
-
     def test_nonmethod_listener_lifetime(self):
         listener = make_function_listener(self.events)
         self.registry.add_extension_point_listener(listener, "my.ep")
