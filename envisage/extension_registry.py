@@ -18,7 +18,7 @@ import weakref
 
 # Enthought library imports.
 from traits.api import (
-    ComparisonMode, Dict, HasTraits, Instance, List, provides, Str,
+    ComparisonMode, Dict, HasTraits, Instance, List, provides, Str, Tuple,
 )
 from traits.observation.api import trait, observe
 
@@ -242,20 +242,12 @@ class ObservableExtensionRegistry(HasTraits):
     Requires Traits 6.1+
     """
 
-    # Mapping from extension point id (str) to a list of extensions
-    # contributed to it.
-    # Each item in the outer list should have the type defined by the
-    # ExtensionPoint trait_type (currently that is also a List).
-    _id_to_contrib = Dict(
-        Str,
-        List(
-            comparison_mode=ComparisonMode.identity,
-        ),
+    # Mapping from extension point id (str) to a tuple(ExtensionPoint, List)
+    _id_to_point_and_list = Dict(
+        Str(),
+        Tuple(),
         comparison_mode=ComparisonMode.identity,
     )
-
-    # Mapping from extension point id (str) to the ExtensionPoint
-    _id_to_extension_point = Dict(Str, Instance(ExtensionPoint))
 
     # Mapping from extension point id to a callable to be used
     # for dispatching events from observe.
@@ -270,38 +262,50 @@ class ObservableExtensionRegistry(HasTraits):
 
         observe(
             object=self,
-            expression=trait("_id_to_contrib", notify=False).dict_items(),
+            expression=(
+                trait("_id_to_point_and_list", notify=False).dict_items()
+            ),
             handler=listener,
             dispatcher=self._get_dispatcher(extension_point_id)
         )
 
     def add_extension_point(self, extension_point):
         """ Reimplemented IExtensionRegistry.add_extension_point """
-        self._id_to_extension_point[extension_point.id] = extension_point
+        self._id_to_point_and_list[extension_point.id] = (
+            extension_point, []
+        )
 
     def get_extensions(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.get_extensions """
-        return self._id_to_contrib.get(extension_point_id, [])[:]
+        _, extensions = self._id_to_point_and_list.get(
+            extension_point_id, (None, [])
+        )
+        return extensions[:]
 
     def get_extension_point(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.get_extension_point """
-        return self._id_to_extension_point.get(extension_point_id)
+        point, _ = self._id_to_point_and_list.get(
+            extension_point_id, (None, [])
+        )
+        return point
 
     def get_extension_points(self):
         """ Reimplemented IExtensionRegistry.get_extension_points """
-        return list(self._id_to_extension_point.values())
+        return [point for point, _ in self._id_to_point_and_list.values()]
 
     def remove_extension_point_listener(
         self, listener, extension_point_id=None
     ):
         """ Reimplemented IExtensionRegistry.remove_extension_point_listener
         """
+        expression = trait("_id_to_point_and_list", notify=False).dict_items()
+        dispatcher = self._get_dispatcher(extension_point_id)
         try:
             observe(
                 object=self,
-                expression=trait("_id_to_contrib", notify=False).dict_items(),
+                expression=expression,
                 handler=listener,
-                dispatcher=self._get_dispatcher(extension_point_id),
+                dispatcher=dispatcher,
                 remove=True,
             )
         except Exception as exception:
@@ -313,77 +317,25 @@ class ObservableExtensionRegistry(HasTraits):
 
     def remove_extension_point(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.remove_extension_point """
-
-        self._check_extension_point(extension_point_id)
-        del self._id_to_extension_point[extension_point_id]
-        self._id_to_contrib.pop(extension_point_id, None)
+        try:
+            del self._id_to_point_and_list[extension_point_id]
+        except KeyError:
+            raise UnknownExtensionPoint(extension_point_id)
 
     def set_extensions(self, extension_point_id, extensions):
         """ Reimplemented IExtensionRegistry.set_extensions """
-
-        self._check_extension_point(extension_point_id)
-
-        self._id_to_contrib[extension_point_id] = extensions
-
-    ###########################################################################
-    # Protected 'ObservableExtensionRegistry' interface.
-    ###########################################################################
-
-    def _check_extension_point(self, extension_point_id):
-        """ Check to see if the extension point exists.
-
-        Parameters
-        ----------
-        extension_point_id : str
-            Extension point id to check
-
-        Raises
-        ------
-        UnknownExtensionPoint
-            If the extension point does not exist.
-        """
-        if extension_point_id not in self._id_to_extension_point:
+        try:
+            extension_point, _ = self._id_to_point_and_list[extension_point_id]
+        except KeyError:
             raise UnknownExtensionPoint(extension_point_id)
+
+        self._id_to_point_and_list[extension_point.id] = (
+            extension_point, extensions
+        )
 
     ###########################################################################
     # Private 'ObservableExtensionRegistry' interface.
     ###########################################################################
-
-    def _create_observer_handler(self, listener, extension_point_id):
-        """ Create a handler that can be used as the handler in
-        ``HasTraits.observe`` such that the listener receives the same content
-        as specified in add_extension_point_listener.
-
-        Parameters
-        ----------
-        listener : callable(IExtensionRegistry, ExtensionPointChangedEvent)
-            Listener with a signature defined by the IExtensionRegistry
-            interface.
-        extension_point_id : str
-            Id of the extension point being observed.
-        """
-
-        def handler(event):
-            """ Handle a DictChangeEvent when the content of _id_to_contrib
-            is mutated.
-            """
-
-            if (extension_point_id is not None
-                    and extension_point_id not in event.added
-                    and extension_point_id not in event.removed):
-                return
-
-            listener(
-                self,
-                ExtensionPointChangedEvent(
-                    extension_point_id=extension_point_id,
-                    added=event.added.get(extension_point_id, []),
-                    removed=event.removed.get(extension_point_id, []),
-                    index=None,
-                )
-            )
-
-        return handler
 
     def _get_dispatcher(self, extension_point_id):
         """ Return the callable for invoking the listener for the given
@@ -429,12 +381,14 @@ class ObservableExtensionRegistry(HasTraits):
                 and extension_point_id not in event.removed):
             return
 
+        _, added = event.added.get(extension_point_id, (None, []))
+        _, removed = event.removed.get(extension_point_id, (None, []))
         listener(
             self,
             ExtensionPointChangedEvent(
                 extension_point_id=extension_point_id,
-                added=event.added.get(extension_point_id, []),
-                removed=event.removed.get(extension_point_id, []),
+                added=added,
+                removed=removed,
                 index=None,
             )
         )
