@@ -278,6 +278,17 @@ class ListeningExtensionRegistryTestMixin:
         self.assertEqual(actual_event.added, [[1, 2, 3]])
         self.assertEqual(actual_event.removed, [])
 
+    def test_nonmethod_listener_lifetime(self):
+        listener, events = self.get_nonmethod_listener()
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point_listener(listener, "my.ep")
+
+        # The listener should not kept alive by the registry.
+        del listener
+
+        with self.assertDoesNotModify(events):
+            self.registry.set_extensions("my.ep", [4, 5, 6, 7])
+
     def test_add_nonmethod_listener_non_matching_id(self):
         """ test when the extension id does not match, listener is not fired.
         """
