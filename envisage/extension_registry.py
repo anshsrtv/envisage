@@ -282,8 +282,7 @@ class ObservableExtensionRegistry(HasTraits):
 
     def get_extension_point(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.get_extension_point """
-        from envisage.extension_point import ExtensionPoint
-        return ExtensionPoint(id="dummy")
+        return self._id_to_extension_point.get(extension_point_id)
 
     def get_extension_points(self):
         """ Reimplemented IExtensionRegistry.get_extension_points """
