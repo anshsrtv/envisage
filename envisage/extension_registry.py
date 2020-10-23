@@ -278,7 +278,7 @@ class ObservableExtensionRegistry(HasTraits):
 
     def get_extensions(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.get_extensions """
-        return []
+        return self._id_to_contrib.get(extension_point_id, [])[:]
 
     def get_extension_point(self, extension_point_id):
         """ Reimplemented IExtensionRegistry.get_extension_point """

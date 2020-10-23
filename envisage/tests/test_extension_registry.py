@@ -214,3 +214,12 @@ class ObservableExtensionRegistryTestCase(
 
     def setUp(self):
         self.registry = ObservableExtensionRegistry()
+
+    def test_mutate_original_extensions_mutate_registry(self):
+        with self.assertRaises(AssertionError):
+            # ObservableExtensionRegistry and ExtensionRegistry disagree
+            # on this test. We can't make ObservableExtensionRegistry do the
+            # same thing if we want to observe a nested List on a dict,
+            # because Traits List always instantiates a new instance of
+            # TraitList at assignment.
+            super().test_mutate_original_extensions_mutate_registry()

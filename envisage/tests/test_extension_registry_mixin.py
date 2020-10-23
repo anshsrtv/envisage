@@ -78,6 +78,20 @@ class ExtensionRegistryTestMixin:
         """ get extension point return None if id is not found. """
         self.assertIsNone(self.registry.get_extension_point("i.do.not.exist"))
 
+    def test_get_extensions_mutation_no_effect_if_undefined(self):
+        """ test one cannot mutate the registry by mutating the list if id
+        is undefined.
+        """
+        # The extension point with id "my.ep" has not been defined
+        extensions = self.registry.get_extensions("my.ep")
+
+        # when
+        extensions.append([[1, 2]])
+
+        # then
+        # the registry is not affected.
+        self.assertEqual(self.registry.get_extensions("my.ep"), [])
+
     def test_remove_empty_extension_point(self):
         """ remove empty_extension point """
 
@@ -126,6 +140,10 @@ class SettableExtensionRegistryTestMixin:
 
     Test cases inheriting from this mixin should define a setUp method that
     defines self.registry as an instance of ExtensionPointRegistry.
+
+    This mixin should be complementary to ExtensionRegistryTestMixin. If a
+    new test does not require ``set_extensions``, consider adding it to
+    ``ExtensionRegistryTestMixin`` instead.
     """
 
     def get_listener(self):
@@ -209,3 +227,51 @@ class SettableExtensionRegistryTestMixin:
 
         # then
         self.assertEqual(len(events), 2)
+
+    def test_get_nonempty_extensions(self):
+        """ test get nonempty extensions after setting it. """
+
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        registry.set_extensions("my.ep", [[1, 2], [3, 4]])
+
+        # when
+        extensions = registry.get_extensions("my.ep")
+
+        # then
+        self.assertEqual(extensions, [[1, 2], [3, 4]])
+
+    def test_get_extensions_mutation_no_effect_if_defined(self):
+        """ test one cannot mutate the returned extensions to mutate the
+        registry.
+        """
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        registry.set_extensions("my.ep", [[1, 2], [3, 4]])
+
+        # when
+        registry.get_extensions("my.ep").append([[5, 6]])
+
+        # then
+        # the registry is not affected.
+        self.assertEqual(
+            self.registry.get_extensions("my.ep"), [[1, 2], [3, 4]]
+        )
+
+    def test_mutate_original_extensions_mutate_registry(self):
+        """ if the original extensions was mutated, the registry is mutated.
+        """
+        # This may be a bug? But it is certainly the current behavior of
+        # ExtensionRegistry.
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        extensions = [[1, 2], [3, 4]]
+        registry.set_extensions("my.ep", extensions)
+
+        # when
+        extensions.append([5, 6])
+
+        # then
+        self.assertEqual(
+            registry.get_extensions("my.ep"), [[1, 2], [3, 4], [5, 6]]
+        )
