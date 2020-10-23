@@ -261,69 +261,8 @@ class ListeningExtensionRegistryTestMixin:
         events = []
         return make_function_listener(events), events
 
-    def test_add_extension_point_listener_with_matching_id(self):
-        """ test adding extension point listener and its outcome."""
-
-        registry = self.registry
-        registry.add_extension_point(ExtensionPoint(id="my.ep"))
-
-        listener, events = self.get_nonmethod_listener()
-        registry.add_extension_point_listener(listener, "my.ep")
-
-        # when
-        old_extensions = registry.get_extensions("my.ep")
-        new_extensions = [[1, 2]]
-        registry.set_extensions("my.ep", new_extensions)
-
-        # then
-        self.assertEqual(len(events), 1)
-        actual_event, = events
-        self.assertEqual(actual_event.extension_point_id, "my.ep")
-        self.assertIsNone(actual_event.index)
-        self.assertEqual(actual_event.added, new_extensions)
-        self.assertEqual(actual_event.removed, old_extensions)
-
-    def test_add_extension_point_listener_non_matching_id(self):
-        """ test when the extension id does not match, listener is not fired.
-        """
-
-        registry = self.registry
-        registry.add_extension_point(ExtensionPoint(id="my.ep"))
-        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
-
-        listener, events = self.get_nonmethod_listener()
-        registry.add_extension_point_listener(listener, "my.ep")
-
-        # setting a different extension should not fire listener
-        # when
-        registry.set_extensions("my.ep2", [[]])
-
-        # then
-        self.assertEqual(len(events), 0)
-
-    def test_add_extension_point_listener_none(self):
-        """ Listen to all extension points if extension_point_id is none """
-
-        registry = self.registry
-        registry.add_extension_point(ExtensionPoint(id="my.ep"))
-        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
-
-        listener, events = self.get_nonmethod_listener()
-        registry.add_extension_point_listener(listener, None)
-
-        # when
-        registry.set_extensions("my.ep2", [[]])
-
-        # then
-        self.assertEqual(len(events), 1)
-
-        # when
-        registry.set_extensions("my.ep", [[]])
-
-        # then
-        self.assertEqual(len(events), 2)
-
     def test_add_nonmethod_listener(self):
+        """ test adding extension point listener and its outcome."""
         listener, events = self.get_nonmethod_listener()
 
         self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
@@ -331,6 +270,41 @@ class ListeningExtensionRegistryTestMixin:
 
         with self.assertAppendsTo(events):
             self.registry.set_extensions("my.ep", [[1, 2, 3]])
+
+        # then
+        actual_event, = events
+        self.assertEqual(actual_event.extension_point_id, "my.ep")
+        self.assertIsNone(actual_event.index)
+        self.assertEqual(actual_event.added, [[1, 2, 3]])
+        self.assertEqual(actual_event.removed, [])
+
+    def test_add_nonmethod_listener_non_matching_id(self):
+        """ test when the extension id does not match, listener is not fired.
+        """
+        listener, events = self.get_nonmethod_listener()
+
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep2"))
+        self.registry.add_extension_point_listener(listener, "my.ep")
+
+        # setting a different extension should not fire listener
+        with self.assertDoesNotModify(events):
+            self.registry.set_extensions("my.ep2", [[]])
+
+    def test_add_extension_point_listener_none(self):
+        """ Listen to all extension points if extension_point_id is none """
+
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep2"))
+
+        listener, events = self.get_nonmethod_listener()
+        self.registry.add_extension_point_listener(listener, None)
+
+        with self.assertAppendsTo(events):
+            self.registry.set_extensions("my.ep2", [[]])
+
+        with self.assertAppendsTo(events):
+            self.registry.set_extensions("my.ep", [[]])
 
     def test_remove_nonmethod_listener(self):
         listener, events = self.get_nonmethod_listener()
