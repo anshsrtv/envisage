@@ -22,12 +22,14 @@ from envisage.extension_registry import ObservableExtensionRegistry
 from envisage.tests.test_extension_registry_mixin import (
     ExtensionRegistryTestMixin,
     SettableExtensionRegistryTestMixin,
+    ListeningExtensionRegistryTestMixin,
 )
 
 
 class ExtensionRegistryTestCase(
         ExtensionRegistryTestMixin,
         SettableExtensionRegistryTestMixin,
+        ListeningExtensionRegistryTestMixin,
         unittest.TestCase,
     ):
     """ Tests for the base extension registry. """
@@ -208,6 +210,7 @@ class ExtensionPointListenerLifetimeTestCase(unittest.TestCase):
 class ObservableExtensionRegistryTestCase(
         ExtensionRegistryTestMixin,
         SettableExtensionRegistryTestMixin,
+        ListeningExtensionRegistryTestMixin,
         unittest.TestCase,
     ):
     """ Tests for the base (?) observable extension registry. """

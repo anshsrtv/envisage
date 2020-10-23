@@ -12,6 +12,8 @@ Base set of tests for extension registry and its subclasses wrapped in a
 mixin class.
 """
 
+import contextlib
+
 # Enthought library imports.
 from envisage.api import ExtensionPoint
 from envisage.api import UnknownExtensionPoint
@@ -136,97 +138,18 @@ class ExtensionRegistryTestMixin:
 
 class SettableExtensionRegistryTestMixin:
     """ Base set of tests to test functionality of IExtensionPointRegistry
-    that depends on ``IExtensionPointRegistry.set_extensions``.
+    that depends on ``IExtensionPointRegistry.set_extensions`` but excludes
+    tests on listeners.
 
     Test cases inheriting from this mixin should define a setUp method that
     defines self.registry as an instance of ExtensionPointRegistry.
 
-    This mixin should be complementary to ExtensionRegistryTestMixin. If a
-    new test does not require ``set_extensions``, consider adding it to
-    ``ExtensionRegistryTestMixin`` instead.
+    See ``ExtensionRegistryTestMixin`` for generic tests that do not require
+    ``set_extensions``.
+
+    See ``ListeningExtensionRegistryTestMixin`` for tests on listener
+    functionality.
     """
-
-    def get_listener(self):
-        """ Return a listener callable and the events list for inspecting
-        the captured events.
-
-        The event list should hold the call arguments to the listener.
-        This provides the functionality of mock.Mock.call_args_list but
-        without depending on all the magic offered by Mock.
-
-        Returns
-        -------
-        listener: callable(ExtensionRegistry, ExtensionPointEvent)
-        events : list
-        """
-        events = []
-
-        def listener(registry, extension_point_event):
-            events.append((registry, extension_point_event))
-
-        return listener, events
-
-    def test_add_extension_point_listener_with_matching_id(self):
-        """ test adding extension point listener and its outcome."""
-
-        registry = self.registry
-        registry.add_extension_point(ExtensionPoint(id="my.ep"))
-
-        listener, events = self.get_listener()
-        registry.add_extension_point_listener(listener, "my.ep")
-
-        # when
-        old_extensions = registry.get_extensions("my.ep")
-        new_extensions = [[1, 2]]
-        registry.set_extensions("my.ep", new_extensions)
-
-        # then
-        self.assertEqual(len(events), 1)
-        (actual_registry, actual_event), = events
-        self.assertEqual(actual_event.extension_point_id, "my.ep")
-        self.assertIsNone(actual_event.index)
-        self.assertEqual(actual_event.added, new_extensions)
-        self.assertEqual(actual_event.removed, old_extensions)
-
-    def test_add_extension_point_listener_non_matching_id(self):
-        """ test when the extension id does not match, listener is not fired.
-        """
-
-        registry = self.registry
-        registry.add_extension_point(ExtensionPoint(id="my.ep"))
-        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
-
-        listener, events = self.get_listener()
-        registry.add_extension_point_listener(listener, "my.ep")
-
-        # setting a different extension should not fire listener
-        # when
-        registry.set_extensions("my.ep2", [[]])
-
-        # then
-        self.assertEqual(len(events), 0)
-
-    def test_add_extension_point_listener_none(self):
-        """ Listen to all extension points if extension_point_id is none """
-
-        registry = self.registry
-        registry.add_extension_point(ExtensionPoint(id="my.ep"))
-        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
-
-        listener, events = self.get_listener()
-        registry.add_extension_point_listener(listener, None)
-
-        # when
-        registry.set_extensions("my.ep2", [[]])
-
-        # then
-        self.assertEqual(len(events), 1)
-
-        # when
-        registry.set_extensions("my.ep", [[]])
-
-        # then
-        self.assertEqual(len(events), 2)
 
     def test_get_nonempty_extensions(self):
         """ test get nonempty extensions after setting it. """
@@ -283,3 +206,183 @@ class SettableExtensionRegistryTestMixin:
         registry = self.registry
         with self.assertRaises(UnknownExtensionPoint):
             registry.set_extensions("i.do.not.exist", [[1]])
+
+
+def make_function_listener(events):
+    """
+    Return a simple non-method extension point listener.
+
+    The listener appends events to the ``events`` list.
+    """
+    def listener(registry, event):
+        events.append(event)
+
+    return listener
+
+
+class ListensToExtensionPoint:
+    """
+    Class with a method that can be used as an extension point listener.
+    """
+    def __init__(self, events):
+        self.events = events
+
+    def listener(self, registry, event):
+        self.events.append(event)
+
+
+class ListeningExtensionRegistryTestMixin:
+    """ Mixin to offer tests that test the listener functionality on an
+    IExtensionRegistry.
+
+    Subclass must provide an attribute ``registry`` which is an
+    ``IExtensionRegistry`.`
+    """
+
+    def get_object_with_listener_method(self):
+        """ Return an object with a method that can be used as an
+        extension point listener along with the event list for inspection
+        in tests.
+
+        Returns
+        -------
+        object : ListensToExtensionPoint
+        events : list
+            List for collecting events.
+            Each item should be an instance of ExtensionPointChangedEvent
+            if the code being tested is correct.
+        """
+        events = []
+        return ListensToExtensionPoint(events), events
+
+    def get_nonmethod_listener(self):
+        """ Return a callable that can be used as an extension point listener
+        along with the event list for inspection in tests.
+
+        Returns
+        -------
+        listener : callable(registry, event)
+        events : list
+            List for collecting events.
+            Each item should be an instance of ExtensionPointChangedEvent
+            if the code being tested is correct.
+        """
+        events = []
+        return make_function_listener(events), events
+
+    def test_add_extension_point_listener_with_matching_id(self):
+        """ test adding extension point listener and its outcome."""
+
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+
+        listener, events = self.get_nonmethod_listener()
+        registry.add_extension_point_listener(listener, "my.ep")
+
+        # when
+        old_extensions = registry.get_extensions("my.ep")
+        new_extensions = [[1, 2]]
+        registry.set_extensions("my.ep", new_extensions)
+
+        # then
+        self.assertEqual(len(events), 1)
+        actual_event, = events
+        self.assertEqual(actual_event.extension_point_id, "my.ep")
+        self.assertIsNone(actual_event.index)
+        self.assertEqual(actual_event.added, new_extensions)
+        self.assertEqual(actual_event.removed, old_extensions)
+
+    def test_add_extension_point_listener_non_matching_id(self):
+        """ test when the extension id does not match, listener is not fired.
+        """
+
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
+
+        listener, events = self.get_nonmethod_listener()
+        registry.add_extension_point_listener(listener, "my.ep")
+
+        # setting a different extension should not fire listener
+        # when
+        registry.set_extensions("my.ep2", [[]])
+
+        # then
+        self.assertEqual(len(events), 0)
+
+    def test_add_extension_point_listener_none(self):
+        """ Listen to all extension points if extension_point_id is none """
+
+        registry = self.registry
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        registry.add_extension_point(ExtensionPoint(id="my.ep2"))
+
+        listener, events = self.get_nonmethod_listener()
+        registry.add_extension_point_listener(listener, None)
+
+        # when
+        registry.set_extensions("my.ep2", [[]])
+
+        # then
+        self.assertEqual(len(events), 1)
+
+        # when
+        registry.set_extensions("my.ep", [[]])
+
+        # then
+        self.assertEqual(len(events), 2)
+
+    def test_add_nonmethod_listener(self):
+        listener, events = self.get_nonmethod_listener()
+
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point_listener(listener, "my.ep")
+
+        with self.assertAppendsTo(events):
+            self.registry.set_extensions("my.ep", [[1, 2, 3]])
+
+    def test_remove_nonmethod_listener(self):
+        listener, events = self.get_nonmethod_listener()
+
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point_listener(listener, "my.ep")
+        self.registry.remove_extension_point_listener(listener, "my.ep")
+
+        with self.assertDoesNotModify(events):
+            self.registry.set_extensions("my.ep", [[4, 5, 6, 7]])
+
+    # Helper assertions #######################################################
+
+    @contextlib.contextmanager
+    def assertAppendsTo(self, some_list):
+        """
+        Assert that exactly one element is appended to a list.
+
+        Return a context manager that checks that the code in the corresponding
+        with block appends exactly one element to the given list.
+        """
+        old_length = len(some_list)
+        yield
+        new_length = len(some_list)
+        diff = new_length - old_length
+        self.assertEqual(
+            diff, 1,
+            msg="Expected exactly one new element; got {}".format(diff),
+        )
+
+    @contextlib.contextmanager
+    def assertDoesNotModify(self, some_list):
+        """
+        Assert that a list is unchanged.
+
+        Return a context manager that checks that the code in the corresponding
+        with block does not modify the length of the given list.
+        """
+        old_length = len(some_list)
+        yield
+        new_length = len(some_list)
+        diff = new_length - old_length
+        self.assertEqual(
+            diff, 0,
+            msg="Expected no new elements; got {}".format(diff),
+        )
