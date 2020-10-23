@@ -302,6 +302,17 @@ class ListeningExtensionRegistryTestMixin:
         with self.assertDoesNotModify(events):
             self.registry.set_extensions("my.ep2", [[]])
 
+    def test_add_method_listener(self):
+        obj, events = self.get_object_with_listener_method()
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point_listener(obj.listener, "my.ep")
+
+        # At this point, the bound method 'obj.listener' no longer
+        # exists; it's already been garbage collected. Nevertheless, the
+        # listener should still fire.
+        with self.assertAppendsTo(events):
+            self.registry.set_extensions("my.ep", [1, 2, 3])
+
     def test_add_extension_point_listener_none(self):
         """ Listen to all extension points if extension_point_id is none """
 
@@ -326,6 +337,31 @@ class ListeningExtensionRegistryTestMixin:
 
         with self.assertDoesNotModify(events):
             self.registry.set_extensions("my.ep", [[4, 5, 6, 7]])
+
+    def test_remove_method_listener(self):
+        obj, events = self.get_object_with_listener_method()
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+
+        # The two occurences of `obj.listener` below refer to different
+        # objects. Nevertheless, they _compare_ equal, so the removal
+        # should still be effective.
+        self.registry.add_extension_point_listener(obj.listener, "my.ep")
+        self.registry.remove_extension_point_listener(obj.listener, "my.ep")
+
+        with self.assertDoesNotModify(events):
+            self.registry.set_extensions("my.ep", [1, 2, 3])
+
+    def test_method_listener_lifetime(self):
+        obj, events = self.get_object_with_listener_method()
+        self.registry.add_extension_point(ExtensionPoint(id="my.ep"))
+        self.registry.add_extension_point_listener(obj.listener, "my.ep")
+
+        # Removing the last reference to the object should deactivate
+        # the listener.
+        del obj
+
+        with self.assertDoesNotModify(events):
+            self.registry.set_extensions("my.ep", [1, 2, 3])
 
     # Helper assertions #######################################################
 
