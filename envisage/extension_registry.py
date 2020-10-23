@@ -242,14 +242,13 @@ class ObservableExtensionRegistry(HasTraits):
     Requires Traits 6.1+
     """
 
-    # Mapping from extension point id (str) to a list of list of extensions
+    # Mapping from extension point id (str) to a list of extensions
     # contributed to it.
-    # Each item in the outer list is a list of extensions contributed by
-    # a given plugin.
+    # Each item in the outer list should have the type defined by the
+    # ExtensionPoint trait_type (currently that is also a List).
     _id_to_contrib = Dict(
         Str,
         List(
-            List(comparison_mode=ComparisonMode.identity),
             comparison_mode=ComparisonMode.identity,
         ),
         comparison_mode=ComparisonMode.identity,
