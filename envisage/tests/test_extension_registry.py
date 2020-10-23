@@ -39,27 +39,6 @@ class ExtensionRegistryTestCase(
         # the same interface!
         self.registry = Application(extension_registry=ExtensionRegistry())
 
-    def test_remove_non_empty_extension_point(self):
-        """ remove non-empty extension point """
-
-        registry = self.registry
-
-        # Add an extension point...
-        registry.add_extension_point(self.create_extension_point("my.ep"))
-
-        # ... with some extensions...
-        registry.set_extensions("my.ep", [42])
-
-        # ...and remove it!
-        registry.remove_extension_point("my.ep")
-
-        # Make sure there are no extension points.
-        extension_points = registry.get_extension_points()
-        self.assertEqual(0, len(extension_points))
-
-        # And that the extensions are gone too.
-        self.assertEqual([], registry.get_extensions("my.ep"))
-
     def test_set_extensions(self):
         """ set extensions """
 

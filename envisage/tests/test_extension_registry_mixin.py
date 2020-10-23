@@ -143,6 +143,27 @@ class SettableExtensionRegistryTestMixin:
     defines self.registry as an instance that implements IExtensionRegistry.
     """
 
+    def test_remove_non_empty_extension_point(self):
+        """ remove non-empty extension point """
+
+        registry = self.registry
+
+        # Add an extension point...
+        registry.add_extension_point(ExtensionPoint(id="my.ep"))
+
+        # ... with some extensions...
+        registry.set_extensions("my.ep", [42])
+
+        # ...and remove it!
+        registry.remove_extension_point("my.ep")
+
+        # Make sure there are no extension points.
+        extension_points = registry.get_extension_points()
+        self.assertEqual(0, len(extension_points))
+
+        # And that the extensions are gone too.
+        self.assertEqual([], registry.get_extensions("my.ep"))
+
     def test_get_nonempty_extensions(self):
         """ test get nonempty extensions after setting it. """
 

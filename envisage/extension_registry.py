@@ -316,6 +316,7 @@ class ObservableExtensionRegistry(HasTraits):
 
         self._check_extension_point(extension_point_id)
         del self._id_to_extension_point[extension_point_id]
+        self._id_to_contrib.pop(extension_point_id, None)
 
     def set_extensions(self, extension_point_id, extensions):
         """ Reimplemented IExtensionRegistry.set_extensions """
