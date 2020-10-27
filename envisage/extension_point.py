@@ -11,6 +11,7 @@
 
 
 # Standard library imports.
+import contextlib
 import inspect
 import weakref
 
@@ -225,6 +226,21 @@ class ExtensionPoint(TraitType):
                 old = Undefined
                 new = event
 
+                extensions = getattr(obj, trait_name)
+
+                if isinstance(event.index, slice):
+                    with extensions._internal_sync():
+                        if event.added:
+                            extensions[event.index] = event.added
+                        else:
+                            del extensions[event.index]
+                else:
+                    slice_ = slice(
+                        event.index, event.index + len(event.removed)
+                    )
+                    with extensions._internal_sync():
+                        extensions[slice_] = event.added
+
             # Otherwise, we fire a normal trait changed event.
             else:
                 name = trait_name
@@ -232,14 +248,6 @@ class ExtensionPoint(TraitType):
                 new = event.added
 
             obj.trait_property_changed(name, old, new)
-
-            if event.index is not None:
-                # Emit notification for "mutations".
-                getattr(obj, trait_name).notify(
-                    index=event.index,
-                    removed=event.removed,
-                    added=event.added,
-                )
 
             return
 
@@ -312,14 +320,35 @@ class _ExtensionPointValue(TraitListObject):
     the list have no meaningful effects.
     """
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._internal_use = False
+
     def __eq__(self, other):
+        if self._internal_use:
+            return super().__eq__(other)
         return _get_extensions(self.object(), self.name) == other
 
     def __getitem__(self, key):
+        if self._internal_use:
+            return super().__getitem__(key)
         return _get_extensions(self.object(), self.name)[key]
 
     def __len__(self):
+        if self._internal_use:
+            return super().__len__()
         return len(_get_extensions(self.object(), self.name))
+
+    @contextlib.contextmanager
+    def _internal_sync(self):
+        """ Context manager to temporarily allow mutation. This should be
+        used by Envisage internal code only.
+        """
+        self._internal_use = True
+        try:
+            yield
+        finally:
+            self._internal_use = False
 
 
 def _get_extensions(object, name):

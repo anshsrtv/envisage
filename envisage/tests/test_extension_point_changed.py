@@ -278,10 +278,7 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(event.object, a.x)
         self.assertEqual(event.added, [])
         self.assertEqual(event.removed, [1, 2, 3])
-
-        # FIXME: This is not consistent with TraitsListObject
-        self.assertEqual(event.index.start, 0)
-        self.assertEqual(event.index.stop, 3)
+        self.assertEqual(event.index, 0)
 
     def test_assign_empty_list_no_event(self):
         """ assign empty list no event """
@@ -355,7 +352,7 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([2, 4, 6, 8], listener.new.added)
         self.assertEqual([1, 2, 3], listener.new.removed)
         self.assertEqual(0, listener.new.index.start)
-        self.assertEqual(4, listener.new.index.stop)
+        self.assertEqual(3, listener.new.index.stop)
 
     def test_assign_non_empty_list_with_observe(self):
         """ assign non-empty list """
@@ -382,13 +379,9 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(len(events), 1)
         event, = events
         self.assertEqual(event.object, a.x)
+        self.assertEqual(event.index, 0)
         self.assertEqual(event.added, [2, 4, 6, 8])
         self.assertEqual(event.removed, [1, 2, 3])
-
-        # FIXME: This is not consistent with TraitsListObject
-        # The stop value is also wrong!
-        self.assertEqual(event.index.start, 0)
-        self.assertEqual(event.index.stop, 4)
 
     def test_add_plugin(self):
         """ add plugin """
