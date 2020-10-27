@@ -12,6 +12,8 @@
 # Standard library imports.
 import unittest
 
+from traits.api import Undefined
+
 # Enthought library imports.
 from envisage.api import Application, ExtensionPoint
 from envisage.api import ExtensionRegistry
@@ -277,6 +279,41 @@ class ExtensionPointTestCase(unittest.TestCase):
         f.x = [42]
 
         self.assertEqual([42], registry.get_extensions("my.ep"))
+
+    def test_set_typed_extension_point_emit_change(self):
+        """ Test change event is emitted for setting the extension point """
+
+        registry = self.registry
+
+        # Add an extension point.
+        registry.add_extension_point(self._create_extension_point("my.ep"))
+
+        # Declare a class that consumes the extension.
+        class Foo(TestBase):
+            x = ExtensionPoint(List(Int), id="my.ep")
+
+        on_trait_change_events = []
+
+        def on_trait_change_handler(*args):
+            on_trait_change_events.append(args)
+
+        observed_events = []
+
+        f = Foo()
+        f.on_trait_change(on_trait_change_handler, "x")
+        f.observe(observed_events.append, "x")
+
+        # when
+        f.x = [42]
+
+        # then
+        self.assertEqual(len(on_trait_change_events), 1)
+        self.assertEqual(len(observed_events), 1)
+        event, = observed_events
+        self.assertEqual(event.object, f)
+        self.assertEqual(event.name, "x")
+        self.assertEqual(event.old, Undefined)
+        self.assertEqual(event.new, [42])
 
     def test_extension_point_str_representation(self):
         """ test the string representation of the extension point """

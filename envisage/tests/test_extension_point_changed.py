@@ -177,6 +177,35 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([3], listener.new.removed)
         self.assertEqual(2, listener.new.index)
 
+    def test_remove_with_observe(self):
+        """ remove with observing items change. """
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Remove a contribution.
+        b.x.remove(3)
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.index, 2)
+        self.assertEqual(event.added, [])
+        self.assertEqual(event.removed, [3])
+
     def test_assign_empty_list(self):
         """ assign empty list """
 
@@ -218,6 +247,37 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([1, 2, 3], listener.new.removed)
         self.assertEqual(0, listener.new.index.start)
         self.assertEqual(3, listener.new.index.stop)
+
+    def test_assign_empty_list_with_observe(self):
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Assign an empty list to one of the plugin's contributions.
+        b.x = []
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.added, [])
+        self.assertEqual(event.removed, [1, 2, 3])
+
+        # FIXME: This is not consistent with TraitsListObject
+        self.assertEqual(event.index.start, 0)
+        self.assertEqual(event.index.stop, 3)
 
     def test_assign_empty_list_no_event(self):
         """ assign empty list no event """
@@ -293,6 +353,39 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(0, listener.new.index.start)
         self.assertEqual(4, listener.new.index.stop)
 
+    def test_assign_non_empty_list_with_observe(self):
+        """ assign non-empty list """
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Assign a non-empty list to one of the plugin's contributions.
+        b.x = [2, 4, 6, 8]
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.added, [2, 4, 6, 8])
+        self.assertEqual(event.removed, [1, 2, 3])
+
+        # FIXME: This is not consistent with TraitsListObject
+        # The stop value is also wrong!
+        self.assertEqual(event.index.start, 0)
+        self.assertEqual(event.index.stop, 4)
+
     def test_add_plugin(self):
         """ add plugin """
 
@@ -344,6 +437,36 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([], listener.new.removed)
         self.assertEqual(3, listener.new.index)
 
+    def test_add_plugin_with_observe(self):
+        """ add plugin with observe """
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        # Start off with just two of the plugins.
+        application = TestApplication(plugins=[a, b])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3], a.x)
+
+        # Now add the other plugin.
+        application.add_plugin(c)
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.index, 3)
+        self.assertEqual(event.added, [98, 99, 100])
+        self.assertEqual(event.removed, [])
+
     def test_remove_plugin(self):
         """ remove plugin """
 
@@ -393,3 +516,33 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([], listener.new.added)
         self.assertEqual([1, 2, 3], listener.new.removed)
         self.assertEqual(0, listener.new.index)
+
+    def test_remove_plugin_with_observe(self):
+        """ remove plugin with observe """
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        # Start off with just two of the plugins.
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Now remove one plugin.
+        application.remove_plugin(b)
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.index, 0)
+        self.assertEqual(event.added, [])
+        self.assertEqual(event.removed, [1, 2, 3])
