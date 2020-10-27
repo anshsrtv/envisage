@@ -206,6 +206,31 @@ class ExtensionPointTestCase(unittest.TestCase):
         with self.assertRaises(TraitError):
             getattr(f, "x")
 
+    def test_invalid_extension_point_after_mutation(self):
+        """ Test extension point becomes invalid later. """
+
+        registry = self.registry
+
+        # Add an extension point.
+        registry.add_extension_point(self._create_extension_point("my.ep"))
+
+        # Declare a class that consumes the extension.
+        class Foo(TestBase):
+            x = ExtensionPoint(List(Int), id="my.ep")
+
+        # Make sure we get a trait error because the type of the extension
+        # doesn't match that of the extension point.
+        f = Foo()
+
+        # This is okay, the list is empty.
+        f.x
+
+        registry.set_extensions("my.ep", "xxx")
+
+        # Now this should fail.
+        with self.assertRaises(TraitError):
+            getattr(f, "x")
+
     def test_extension_point_with_no_id(self):
         """ extension point with no Id """
 
