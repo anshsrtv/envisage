@@ -163,20 +163,24 @@ class ExtensionPoint(TraitType):
     # 'TraitType' interface.
     ###########################################################################
 
+    def _update_cache(self, obj, trait_name, cache_name):
+        old = obj.__dict__.get(cache_name, Undefined)
+        new = (
+            _ExtensionPointValue(
+                trait=self.trait_type,
+                object=obj,
+                name=trait_name,
+                value=_get_extensions(obj, trait_name),
+            )
+        )
+        obj.__dict__[cache_name] = new
+        obj.trait_property_changed(trait_name, old, new)
+
     def get(self, obj, trait_name):
         """ Trait type getter. """
         cache_name = "__envisage_{}".format(trait_name)
         if cache_name not in obj.__dict__:
-            value = (
-                _ExtensionPointValue(
-                    trait=self.trait_type,
-                    object=obj,
-                    name=trait_name,
-                    value=_get_extensions(obj, trait_name),
-                )
-            )
-            obj.__dict__[cache_name] = value
-            obj.trait_property_changed(trait_name, Undefined, value)
+            self._update_cache(obj, trait_name, cache_name)
 
         value = obj.__dict__[cache_name]
         # validate again
@@ -193,7 +197,8 @@ class ExtensionPoint(TraitType):
         # for exxample ;^).
         extension_registry.set_extensions(self.id, value)
 
-        return
+        cache_name = "__envisage_{}".format(name)
+        self._update_cache(obj, name, cache_name)
 
     ###########################################################################
     # 'ExtensionPoint' interface.
