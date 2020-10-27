@@ -128,8 +128,7 @@ class ExtensionPointTestCase(unittest.TestCase):
 
         # when
         f = Foo()
-        with self.assertWarns(RuntimeWarning):
-            f.x.append(42)
+        f.x.append(42)
 
         # then
         # The registry is not changed, and the extension point is still the

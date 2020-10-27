@@ -61,8 +61,7 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         application.start()
 
         # when
-        with self.assertWarns(RuntimeWarning):
-            a.x.append(42)
+        a.x.append(42)
 
         # then
         self.assertIsNone(listener.obj)
@@ -133,10 +132,9 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(len(events), 1)
         event, = events
         self.assertEqual(event.object, a.x)
-        self.assertEqual(event.name, "items")
-        self.assertEqual(event.new.index, 3)
-        self.assertEqual(event.new.added, [4])
-        self.assertEqual(event.new.removed, [])
+        self.assertEqual(event.index, 3)
+        self.assertEqual(event.added, [4])
+        self.assertEqual(event.removed, [])
 
     def test_remove(self):
         """ remove """

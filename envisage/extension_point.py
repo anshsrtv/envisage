@@ -11,14 +11,13 @@
 
 
 # Standard library imports.
-from collections.abc import Sequence
 import inspect
 import weakref
-import warnings
 
 # Enthought library imports.
 from traits.api import (
-    Any, Event, HasStrictTraits, List, Str, TraitType, Undefined, provides
+    Any, Event, HasStrictTraits, List, Str, TraitListObject,
+    TraitType, Undefined, provides
 )
 
 # Local imports.
@@ -169,14 +168,19 @@ class ExtensionPoint(TraitType):
         cache_name = "__envisage_{}".format(trait_name)
         if cache_name not in obj.__dict__:
             value = (
-                _ExtensionPointValue(_obj=obj, _trait_name=trait_name)
+                _ExtensionPointValue(
+                    trait=self.trait_type,
+                    object=obj,
+                    name=trait_name,
+                    value=_get_extensions(obj, trait_name),
+                )
             )
             obj.__dict__[cache_name] = value
             obj.trait_property_changed(trait_name, Undefined, value)
 
         value = obj.__dict__[cache_name]
-        # For validation.
-        value._get_extensions()
+        # validate again
+        self.trait_type.validate(obj, trait_name, value[:])
         return value
 
     def set(self, obj, name, value):
@@ -225,9 +229,12 @@ class ExtensionPoint(TraitType):
             obj.trait_property_changed(name, old, new)
 
             if event.index is not None:
-                # Fire the event for the 'items' event trait on
-                # _ExtensionPointValue.
-                getattr(obj, trait_name).items = new
+                # Emit notification for "mutations".
+                getattr(obj, trait_name).notify(
+                    index=event.index,
+                    removed=event.removed,
+                    added=event.added,
+                )
 
             return
 
@@ -279,8 +286,7 @@ class ExtensionPoint(TraitType):
         return extension_registry
 
 
-@Sequence.register
-class _ExtensionPointValue(HasStrictTraits):
+class _ExtensionPointValue(TraitListObject):
     """ An instance of _ExtensionPointValue is the value being returned while
     retrieving the attribute value for an ExtensionPoint trait.
 
@@ -295,58 +301,40 @@ class _ExtensionPointValue(HasStrictTraits):
     ``observe("name:items")``. This class is defined to support such a
     migration while preventing the list of extensions to be mutated directly.
 
-    Previously ExtensionPoint returns a TraitListObject. This class
-    implements the interface of Sequence to support existing code assuming a
-    list being returned.
+    Note that the value given to the list instantiation ``__init__`` is
+    never kept synchronized with the extension registry. We just make sure all
+    access to the value goes through the extension registry again. Mutations to
+    the list have no meaningful effects.
     """
 
-    # Trait to be observed and replace the role played by name_items
-    items = Event()
-
-    # The object on which an ExtensionPoint is defined.
-    _obj = Any()
-
-    # Name of the trait the ExtensionPoint is defined for.
-    _trait_name = Str()
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # Get TraitError early.
-        self._get_extensions()
-
-    def _get_extensions(self):
-        """ Return the extension value as is validated by the ExtensionPoint
-        trait type.
-        """
-        extension_point = self._obj.trait(self._trait_name).trait_type
-        extension_registry = extension_point._get_extension_registry(self._obj)
-
-        # Get the extensions to this extension point.
-        extensions = extension_registry.get_extensions(extension_point.id)
-
-        # Make sure the contributions are of the appropriate type.
-        return extension_point.trait_type.validate(
-            self._obj, self._trait_name, extensions
-        )
-
     def __eq__(self, other):
-        return self._get_extensions() == other
+        return _get_extensions(self.object(), self.name) == other
 
     def __getitem__(self, key):
-        return self._get_extensions()[key]
+        return _get_extensions(self.object(), self.name)[key]
 
     def __len__(self):
-        return len(self._get_extensions())
+        return len(_get_extensions(self.object(), self.name))
 
-    # FIXME: Should we reimplement all the methods on list to do nothing
-    # apart from warning?
 
-    def append(self, value):
-        """ Reimplemented list.append to do nothing.
-        """
-        warnings.warn(
-            "ExtensionPoint cannot be mutated directly. "
-            "append method will be removed in the future.",
-            RuntimeWarning,
-            stacklevel=2,
-        )
+def _get_extensions(object, name):
+    """ Return the extensions reported by the extension registry for the
+    given object and the name of a trait whose type is an ExtensionPoint.
+
+    Parameters
+    ----------
+    object : HasTraits
+        Object on which an ExtensionPoint is defined
+    name : str
+        Name of the trait whose trait type is an ExtensionPoint.
+
+    Returns
+    -------
+    extensions : list
+        All the extensions for the extension point.
+    """
+    extension_point = object.trait(name).trait_type
+    extension_registry = extension_point._get_extension_registry(object)
+
+    # Get the extensions to this extension point.
+    return extension_registry.get_extensions(extension_point.id)
