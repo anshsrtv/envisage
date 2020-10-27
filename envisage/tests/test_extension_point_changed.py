@@ -58,7 +58,8 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         application.start()
 
         # when
-        a.x.append(42)
+        with self.assertWarns(RuntimeWarning):
+            a.x.append(42)
 
         # then
         self.assertIsNone(listener.obj)

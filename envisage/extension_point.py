@@ -15,7 +15,10 @@ import inspect
 import weakref
 
 # Enthought library imports.
-from traits.api import List, TraitType, Undefined, provides
+from traits.api import (
+    Any, Event, HasStrictTraits, List, Instance, Str, TraitType, Undefined,
+    provides
+)
 
 # Local imports.
 from .i_extension_point import IExtensionPoint
@@ -162,14 +165,7 @@ class ExtensionPoint(TraitType):
 
     def get(self, obj, trait_name):
         """ Trait type getter. """
-
-        extension_registry = self._get_extension_registry(obj)
-
-        # Get the extensions to this extension point.
-        extensions = extension_registry.get_extensions(self.id)
-
-        # Make sure the contributions are of the appropriate type.
-        return self.trait_type.validate(obj, trait_name, extensions)
+        return _ExtensionPointValue(_obj=obj, _trait_name=trait_name)
 
     def set(self, obj, name, value):
         """ Trait type setter. """
@@ -264,3 +260,75 @@ class ExtensionPoint(TraitType):
             )
 
         return extension_registry
+
+
+
+from collections.abc import Sequence
+import warnings
+
+
+@Sequence.register
+class _ExtensionPointValue(HasStrictTraits):
+    """ An instance of _ExtensionPointValue is the value being returned while
+    retrieving the attribute value for an ExtensionPoint trait.
+
+    For a given trait ``name`` created using the ExtensionPoint trait type,
+    historically one can get notifications for changes to the extension point
+    by listening to the "name_items" trait using ``on_trait_change``. However,
+    the ExtensionPoint value is not a persisted list that can be mutated.
+    In Traits 6.1, a new notification framework is introduced: ``observe``.
+    Since the naming of "name_items" clashes with listening to mutation on a
+    persisted Traits list/dict/set in the older framework, tt is then is
+    tempting to migrate ``on_trait_change("name_items")`` to
+    ``observe("name:items")``. This class is defined to support such a
+    migration while preventing the list of extensions to be mutated directly.
+
+    Previously ExtensionPoint returns a TraitListObject. This class
+    implements the interface of Sequence to support existing code assuming a
+    list being returned.
+    """
+
+    # Trait to be observed and replace the role played by name_items
+    items = Event()
+
+    # The object on which an ExtensionPoint is defined.
+    _obj = Any()
+
+    # Name of the trait the ExtensionPoint is defined for.
+    _trait_name = Str()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Get TraitError early.
+        self._get_extensions()
+
+    def _get_extensions(self):
+        extension_point = self._obj.trait(self._trait_name).trait_type
+        extension_registry = extension_point._get_extension_registry(self._obj)
+
+        # Get the extensions to this extension point.
+        extensions = extension_registry.get_extensions(extension_point.id)
+
+        # Make sure the contributions are of the appropriate type.
+        return extension_point.trait_type.validate(
+            self._obj, self._trait_name, extensions
+        )
+
+    def __eq__(self, other):
+        return self._get_extensions() == other
+
+    def __getitem__(self, key):
+        return self._get_extensions()[key]
+
+    def __len__(self):
+        return len(self._get_extensions())
+
+    def append(self, value):
+        """ Reimplemented list.append to do nothing.
+        """
+        warnings.warn(
+            "ExtensionPoint cannot be mutated directly. "
+            "append method will be removed in the future.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
