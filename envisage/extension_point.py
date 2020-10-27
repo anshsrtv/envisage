@@ -11,13 +11,14 @@
 
 
 # Standard library imports.
+from collections.abc import Sequence
 import inspect
 import weakref
+import warnings
 
 # Enthought library imports.
 from traits.api import (
-    Any, Event, HasStrictTraits, List, Instance, Str, TraitType, Undefined,
-    provides
+    Any, Event, HasStrictTraits, List, Str, TraitType, Undefined, provides
 )
 
 # Local imports.
@@ -165,7 +166,14 @@ class ExtensionPoint(TraitType):
 
     def get(self, obj, trait_name):
         """ Trait type getter. """
-        return _ExtensionPointValue(_obj=obj, _trait_name=trait_name)
+        if trait_name not in obj.__dict__:
+            value = (
+                _ExtensionPointValue(_obj=obj, _trait_name=trait_name)
+            )
+            obj.__dict__[trait_name] = value
+            obj.trait_property_changed(trait_name, Undefined, value)
+
+        return obj.__dict__[trait_name]
 
     def set(self, obj, name, value):
         """ Trait type setter. """
@@ -211,6 +219,11 @@ class ExtensionPoint(TraitType):
                 new = event.added
 
             obj.trait_property_changed(name, old, new)
+
+            if event.index is not None:
+                # Fire the event for the 'items' event trait on
+                # _ExtensionPointValue.
+                getattr(obj, trait_name).items = new
 
             return
 
@@ -262,11 +275,6 @@ class ExtensionPoint(TraitType):
         return extension_registry
 
 
-
-from collections.abc import Sequence
-import warnings
-
-
 @Sequence.register
 class _ExtensionPointValue(HasStrictTraits):
     """ An instance of _ExtensionPointValue is the value being returned while
@@ -303,6 +311,9 @@ class _ExtensionPointValue(HasStrictTraits):
         self._get_extensions()
 
     def _get_extensions(self):
+        """ Return the extension value as is validated by the ExtensionPoint
+        trait type.
+        """
         extension_point = self._obj.trait(self._trait_name).trait_type
         extension_registry = extension_point._get_extension_registry(self._obj)
 
@@ -322,6 +333,9 @@ class _ExtensionPointValue(HasStrictTraits):
 
     def __len__(self):
         return len(self._get_extensions())
+
+    # FIXME: Should we reimplement all the methods on list to do nothing
+    # apart from warning?
 
     def append(self, value):
         """ Reimplemented list.append to do nothing.

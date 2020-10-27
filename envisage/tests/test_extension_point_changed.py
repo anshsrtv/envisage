@@ -12,7 +12,10 @@
 # Standard library imports.
 import unittest
 
+from traits.api import Int, List, Str
+
 # Local imports.
+from envisage.api import ExtensionPoint, Plugin
 from envisage.tests.test_application import (
     PluginA,
     PluginB,
@@ -104,6 +107,36 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual([4], listener.new.added)
         self.assertEqual([], listener.new.removed)
         self.assertEqual(3, listener.new.index)
+
+    def test_append_with_observe(self):
+        """ append with observe """
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # fixme: If the extension point has not been accessed then the
+        # provider extension registry can't work out what has changed, so it
+        # won't fire a changed event.
+        self.assertEqual([1, 2, 3, 98, 99, 100], a.x)
+
+        # Append a contribution.
+        b.x.append(4)
+
+        # then
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.name, "items")
+        self.assertEqual(event.new.index, 3)
+        self.assertEqual(event.new.added, [4])
+        self.assertEqual(event.new.removed, [])
 
     def test_remove(self):
         """ remove """
