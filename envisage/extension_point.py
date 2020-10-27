@@ -166,14 +166,18 @@ class ExtensionPoint(TraitType):
 
     def get(self, obj, trait_name):
         """ Trait type getter. """
-        if trait_name not in obj.__dict__:
+        cache_name = "__envisage_{}".format(trait_name)
+        if cache_name not in obj.__dict__:
             value = (
                 _ExtensionPointValue(_obj=obj, _trait_name=trait_name)
             )
-            obj.__dict__[trait_name] = value
+            obj.__dict__[cache_name] = value
             obj.trait_property_changed(trait_name, Undefined, value)
 
-        return obj.__dict__[trait_name]
+        value = obj.__dict__[cache_name]
+        # For validation.
+        value._get_extensions()
+        return value
 
     def set(self, obj, name, value):
         """ Trait type setter. """
