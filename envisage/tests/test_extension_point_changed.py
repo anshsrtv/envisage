@@ -53,9 +53,12 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         """ Mutation will not emit change event for name_items """
 
         a = PluginA()
-        a.on_trait_change(listener, "x_items")
         b = PluginB()
         c = PluginC()
+
+        a.on_trait_change(listener, "x_items")
+        events = []
+        a.observe(events.append, "x:items")
 
         application = TestApplication(plugins=[a, b, c])
         application.start()
@@ -65,6 +68,7 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
 
         # then
         self.assertIsNone(listener.obj)
+        self.assertEqual(len(events), 0)
 
     def test_append(self):
         """ append """
