@@ -215,8 +215,6 @@ class ExtensionPoint(TraitType):
         # for exxample ;^).
         extension_registry.set_extensions(self.id, value)
 
-        self._update_cache(obj, name)
-
     ###########################################################################
     # 'ExtensionPoint' interface.
     ###########################################################################

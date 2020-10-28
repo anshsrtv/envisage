@@ -332,6 +332,9 @@ class ExtensionPointTestCase(unittest.TestCase):
         f.on_trait_change(on_trait_change_handler, "x")
         f.observe(observed_events.append, "x")
 
+        # this step is assumed by ExtensionPoint
+        ExtensionPoint.connect_extension_point_traits(f)
+
         # when
         f.x = [42]
 
