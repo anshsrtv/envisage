@@ -225,8 +225,8 @@ class ExtensionPoint(TraitType):
                 )
 
             else:
-                # Otherwise, we set the list against and fire a normal trait
-                # changed event.
+                # The entire list has changed. We reset the cache and fire a
+                # normal trait changed event.
                 self._update_cache(obj, trait_name)
 
         # In case the cache was created first and the registry is then mutated
