@@ -262,6 +262,7 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(3, listener.new.index.stop)
 
     def test_assign_empty_list_with_observe(self):
+        """ assign an empty list to a plugin triggers a list change event."""
 
         a = PluginA()
         b = PluginB()
