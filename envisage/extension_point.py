@@ -11,7 +11,6 @@
 
 
 # Standard library imports.
-import contextlib
 import inspect
 import warnings
 import weakref
@@ -223,22 +222,9 @@ class ExtensionPoint(TraitType):
                 old = Undefined
                 new = event
 
-                extensions = getattr(obj, trait_name)
-
                 # Mutating the list to fire ListChangeEvent
                 # expected from observing item change.
-                if isinstance(event.index, slice):
-                    with extensions._internal_sync():
-                        if event.added:
-                            extensions[event.index] = event.added
-                        else:
-                            del extensions[event.index]
-                else:
-                    slice_ = slice(
-                        event.index, event.index + len(event.removed)
-                    )
-                    with extensions._internal_sync():
-                        extensions[slice_] = event.added
+                getattr(obj, trait_name)._sync_values(event)
 
                 # For on_trait_change('name_items')
                 obj.trait_property_changed(name, old, new)
@@ -391,7 +377,7 @@ class _ExtensionPointValue(TraitList):
         super().__init__(iterable)
 
         # Flag to control access for mutating the list. Only internal
-        # code can mutate the list. See _internal_sync
+        # code can mutate the list. See _sync_values
         self._internal_use = False
 
         self._object = object
@@ -412,14 +398,28 @@ class _ExtensionPointValue(TraitList):
             return super().__len__()
         return len(_get_extensions(self._object, self._name))
 
-    @contextlib.contextmanager
-    def _internal_sync(self):
-        """ Context manager to temporarily allow mutation. This should be
-        used by Envisage internal code only.
+    def _sync_values(self, event):
+        """ Given an ExtensionPointChangedEvent, modify the values in this list
+        to match. This is an internal method only used by Envisage code.
+
+        Parameters
+        ----------
+        event : ExtenstionPointChangedEvent
+            Event being fired for extension point values changed (typically
+            via the extension registry)
         """
         self._internal_use = True
         try:
-            yield
+            if isinstance(event.index, slice):
+                if event.added:
+                    self[event.index] = event.added
+                else:
+                    del self[event.index]
+            else:
+                slice_ = slice(
+                    event.index, event.index + len(event.removed)
+                )
+                self[slice_] = event.added
         finally:
             self._internal_use = False
 
