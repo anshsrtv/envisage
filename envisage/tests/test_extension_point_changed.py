@@ -577,3 +577,43 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(event.index, 0)
         self.assertEqual(event.added, [])
         self.assertEqual(event.removed, [1, 2, 3])
+
+    def test_race_condition(self):
+        """ Test the extension point being modified before the application
+        starts, changes before starting the application are not notified.
+        """
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+        application = TestApplication(plugins=[a, b, c])
+
+        events = []
+        a.observe(events.append, "x:items")
+
+        # This sets the cache.
+        self.assertEqual(a.x, [1, 2, 3, 98, 99, 100])
+
+        # Now we mutate the registry, but the application has not started.
+        b.x = [4, 5, 6]
+
+        # then
+        self.assertEqual(a.x, [4, 5, 6, 98, 99, 100])
+        # application has not started, no events.
+        self.assertEqual(len(events), 0)
+
+        # Now we start the application, which connects the listener.
+        application.start()
+
+        # Change the value again.
+        b.x.append(7)
+
+        # then
+        self.assertEqual(a.x, [4, 5, 6, 7, 98, 99, 100])
+
+        # The mutation occurred before application starting is not reported.
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.index, 3)
+        self.assertEqual(event.added, [7])
+        self.assertEqual(event.removed, [])
