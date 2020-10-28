@@ -17,7 +17,7 @@ import weakref
 
 # Enthought library imports.
 from traits.api import List, TraitType, Undefined, provides
-from traits.trait_list_object import TraitList # See enthought/traits#1332
+from traits.trait_list_object import TraitList
 
 # Local imports.
 from .i_extension_point import IExtensionPoint
