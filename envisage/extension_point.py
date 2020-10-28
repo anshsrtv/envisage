@@ -317,32 +317,25 @@ class _ExtensionPointValue(TraitList):
     """ _ExtensionPointValue is the list being returned while retrieving the
     attribute value for an ExtensionPoint trait.
 
-    The ExtensionRegistry remains to the source of truth as to what extensions
-    are available for a given extension point ID. This list returned for
-    an ExtensionPoint acts as a proxy to query extensions in an
-    ExtensionRegistry. Users of ExtensionPoint expect to handle a list-like
-    object, and expect to be able to listen to "mutation" on the list.
+    This list returned for an ExtensionPoint acts as a proxy to query
+    extensions in an ExtensionRegistry for a given extension point id. Users of
+    ExtensionPoint expect to handle a list-like object, and expect to be able
+    to listen to "mutation" on the list. The ExtensionRegistry remains to be
+    the source of truth as to what extensions are available for a given
+    extension point ID.
 
-    However, users are not expected to mutate the list directly. All mutations
-    to extensions are expected to go through the extension registry to maintain
-    consistency.
+    Users are not expected to mutate the list directly. All mutations to
+    extensions are expected to go through the extension registry to maintain
+    consistency. With that, all methods for mutating the list are nullified,
+    unless it is used internally.
 
     The requirement to support ``observe("name:items")`` means this list,
     associated with `name`, cannot be a property that gets recomputed on every
-    access (enthought/traits/#624), it needs to be cached. Furthermore, users
-    expect to receive change events as if the list was mutated directly, in
-    other words, the expected event object should be a ListChangeEvent.
+    access (enthought/traits/#624), it needs to be cached. As with any
+    cached quantity, it needs to be synchronized with the ExtensionRegistry.
 
-    Consequently, this ExtensionPointValue is effectively a cached property
-    on the object that defines the ExtensionPoint. As with any cached quantity,
-    it needs to be synchronized with the ExtensionRegistry.
-
-    To ensure that all mutations to the extension registry must go through
-    the extension registry. All methods for mutating the list are nullified,
-    unless it is used internally.
-
-    Assumptions on the internal values being sychronized with the registry
-    break down if the extension registry is mutated before listeners
+    The assumption on the internal values being synchronized with the registry
+    breaks down if the extension registry is mutated before listeners
     are hooked up between the extension point and the registry. This sequence
     of events is difficult to enforce. Therefore we always resort to the
     extension registry for querying values.
