@@ -71,6 +71,40 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertIsNone(listener.obj)
         self.assertEqual(len(events), 0)
 
+    def test_mutate_extension_point_then_modify_from_registry(self):
+
+        a = PluginA()
+        b = PluginB()
+        c = PluginC()
+
+        a.on_trait_change(listener, "x_items")
+        events = []
+        a.observe(events.append, "x:items")
+
+        application = TestApplication(plugins=[a, b, c])
+        application.start()
+
+        # when
+        with self.assertWarns(RuntimeWarning):
+            a.x.clear()
+
+        # then
+        self.assertIsNone(listener.obj)
+        self.assertEqual(len(events), 0)
+
+        # when
+        # Append a contribution.
+        b.x.append(4)
+
+        # then
+        self.assertEqual(a.x, [1, 2, 3, 4, 98, 99, 100])
+        self.assertEqual(len(events), 1)
+        event, = events
+        self.assertEqual(event.object, a.x)
+        self.assertEqual(event.index, 3)
+        self.assertEqual(event.added, [4])
+        self.assertEqual(event.removed, [])
+
     def test_append(self):
         """ append """
 

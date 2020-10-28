@@ -134,6 +134,33 @@ class ExtensionPointTestCase(unittest.TestCase):
         with self.assertWarns(RuntimeWarning):
             f.x.append(42)
 
+        with self.assertWarns(RuntimeWarning):
+            f.x.clear()
+
+        with self.assertWarns(RuntimeWarning):
+            f.x.extend((100, 101))
+
+        with self.assertWarns(RuntimeWarning):
+            f.x.insert(0, 1)
+
+        with self.assertWarns(RuntimeWarning):
+            f.x.pop()
+
+        with self.assertWarns(RuntimeWarning):
+            f.x.remove(1)
+
+        with self.assertWarns(RuntimeWarning):
+            f.x[0] = 99
+
+        with self.assertWarns(RuntimeWarning):
+            f.x *= 99
+
+        with self.assertWarns(RuntimeWarning):
+            f.x += [9]
+
+        with self.assertWarns(RuntimeWarning):
+            del f.x[0:2]
+
         # then
         # The registry is not changed, and the extension point is still the
         # same as before

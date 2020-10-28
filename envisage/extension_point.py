@@ -332,10 +332,17 @@ class _ExtensionPointValue(TraitList):
     ``observe("name:items")``. This class is defined to support such a
     migration while preventing the list of extensions to be mutated directly.
 
-    Note that the value given to the list instantiation ``__init__`` is
-    never kept synchronized with the extension registry. We just make sure all
-    access to the value goes through the extension registry again. Mutations to
-    the list have no meaningful effects.
+    Assumptions on the internal values being synchronized with the registry
+    is error-prone, and more importantly, rely on the listener on the extension
+    registry to be hooked up before any changes on the registry has happened.
+    The latter is hard to guarantee. Therefore we always resort to the
+    extension registry to get any values. The registry should hold the
+    single source of truth.
+
+    The listener machinery, however, does assume the list is synchronized so
+    that the index, removed, added on the change event object is correct.
+    So we make an effort to synchronize the values, but also make an effort
+    to prevent users from modifying the values on the list.
     """
 
     def __init__(self, *args, **kwargs):
@@ -383,8 +390,15 @@ class _ExtensionPointValue(TraitList):
         finally:
             self._internal_use = False
 
-    def append(self, object):
-        """ Reimplemented TraitList.append """
+    # Reimplement TraitList interface to avoid any mutation.
+    # The original implementation of __setitem__ and __delitem__ can be used
+    # by internal code.
+
+    def __delitem__(self, key):
+        """ Reimplemented TraitList.__delitem__ """
+
+        # This is used by internal code
+
         if not self._internal_use:
             warnings.warn(
                 "Extension point cannot be mutated directly.",
@@ -393,7 +407,96 @@ class _ExtensionPointValue(TraitList):
             )
             return
 
-        super().append(object)
+        super().__delitem__(key)
+
+    def __iadd__(self, value):
+        """ Reimplemented TraitList.__iadd__ """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return self[:]
+
+    def __imul__(self, value):
+        """ Reimplemented TraitList.__imul__ """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return self[:]
+
+    def __setitem__(self, key, value):
+        """ Reimplemented TraitList.__setitem__ """
+
+        # This is used by internal code
+
+        if not self._internal_use:
+            warnings.warn(
+                "Extension point cannot be mutated directly.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return
+
+        super().__setitem__(key, value)
+
+    def append(self, object):
+        """ Reimplemented TraitList.append """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    def clear(self):
+        """ Reimplemented TraitList.clear """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    def extend(self, iterable):
+        """ Reimplemented TraitList.extend """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    def insert(self, index, object):
+        """ Reimplemented TraitList.insert """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    def pop(self, index=-1):
+        """ Reimplemented TraitList.pop """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    def remove(self, value):
+        """ Reimplemented TraitList.remove """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
 
 def _get_extensions(object, name):
