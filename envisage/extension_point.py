@@ -188,9 +188,10 @@ class ExtensionPoint(TraitType):
         new = (
             _ExtensionPointValue(
                 _get_extensions(obj, trait_name),
+                object=obj,
+                name=trait_name,
             )
         )
-        new._set_reference(obj, trait_name)
         obj.__dict__[cache_name] = new
         obj.trait_property_changed(trait_name, old, new)
 
@@ -340,27 +341,33 @@ class _ExtensionPointValue(TraitList):
     that the index, removed, added on the change event object is correct.
     So we make an effort to synchronize the values, but also make an effort
     to prevent users from modifying the values on the list.
+
+    Parameters
+    ----------
+    iterable : iterable
+        Iterable providing the items for the list
+    obj : HasTraits
+        The object on which an ExtensionPoint is defined.
+    trait_name : str
+        The name of the trait for which ExtensionPoint is defined.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, iterable=(), *, object, name):
+        """ Reimplemented TraitList.__init__
+
+        Parameters
+        ----------
+        object : HasTraits
+            The object on which an ExtensionPoint is defined.
+        trait_name : str
+            The name of the trait for which ExtensionPoint is defined.
+        """
+        super().__init__(iterable)
 
         # Flag to control access for mutating the list. Only internal
         # code can mutate the list. See _internal_sync
         self._internal_use = False
 
-    def _set_reference(self, object, name):
-        """ Set references to the HasTraits object and trait name this
-        ExtensionPointValue is defined for.
-
-        Parameters
-        ----------
-        obj : HasTraits
-            The object on which an ExtensionPoint is defined.
-        trait_name : str
-            The name of the trait for which ExtensionPoint is defined.
-        """
-        # FIXME: Do we need weakref here for the object?
         self._object = object
         self._name = name
 
