@@ -517,6 +517,24 @@ class _ExtensionPointValue(TraitList):
             stacklevel=2,
         )
 
+    def reverse(self):
+        """ Reimplemented TraitList.reverse """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+    def sort(self, *, key=None, reverse=False):
+        """ Reimplemented TraitList.sort """
+        # We should not need it for internal use either.
+        warnings.warn(
+            "Extension point cannot be mutated directly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
 
 def _get_extensions(object, name):
     """ Return the extensions reported by the extension registry for the

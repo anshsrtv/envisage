@@ -122,7 +122,7 @@ class ExtensionPointTestCase(unittest.TestCase):
         registry.add_extension_point(self._create_extension_point("my.ep"))
 
         # Set the extensions.
-        registry.set_extensions("my.ep", [1, 2, 3])
+        registry.set_extensions("my.ep", [1, 2, 3, 0, 5])
 
         # Declare a class that consumes the extension.
         class Foo(TestBase):
@@ -161,11 +161,17 @@ class ExtensionPointTestCase(unittest.TestCase):
         with self.assertWarns(RuntimeWarning):
             del f.x[0:2]
 
+        with self.assertWarns(RuntimeWarning):
+            f.x.reverse()
+
+        with self.assertWarns(RuntimeWarning):
+            f.x.sort()
+
         # then
         # The registry is not changed, and the extension point is still the
         # same as before
-        self.assertEqual(registry.get_extensions("my.ep"), [1, 2, 3])
-        self.assertEqual(f.x, [1, 2, 3])
+        self.assertEqual(registry.get_extensions("my.ep"), [1, 2, 3, 0, 5])
+        self.assertEqual(f.x.copy(), [1, 2, 3, 0, 5])
 
     def test_untyped_extension_point(self):
         """ untyped extension point """
