@@ -605,15 +605,15 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         application.start()
 
         # Change the value again.
-        b.x.append(7)
+        b.x = [1, 2]
 
         # then
-        self.assertEqual(a.x, [4, 5, 6, 7, 98, 99, 100])
+        self.assertEqual(a.x, [1, 2, 98, 99, 100])
 
         # The mutation occurred before application starting is not reported.
         self.assertEqual(len(events), 1)
         event, = events
         self.assertEqual(event.object, a.x)
-        self.assertEqual(event.index, 3)
-        self.assertEqual(event.added, [7])
-        self.assertEqual(event.removed, [])
+        self.assertEqual(event.index, 0)
+        self.assertEqual(event.added, [1, 2])
+        self.assertEqual(event.removed, [4, 5, 6])
