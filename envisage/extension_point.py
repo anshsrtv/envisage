@@ -233,9 +233,20 @@ class ExtensionPoint(TraitType):
         """
 
         def listener(extension_registry, event):
-            """ Listener called when an extension point is changed. """
+            """ Listener called when an extension point is changed.
 
-            # If an index was specified then we fire an '_items' changed event.
+            Parameters
+            ----------
+            extension_registry : IExtensionRegistry
+                Registry that maintains the extensions.
+            event : ExtensionPointChangedEvent
+                Event for created for the change.
+                If the index is None, this means the entire extensions
+                is set to a new value. If the index is not None, some portion
+                of the list has been modified.
+            """
+            # If an index was specified then we mutate the list
+            # to fire the list items changed event.
             if event.index is not None:
                 name = trait_name + "_items"
                 old = Undefined
@@ -243,6 +254,8 @@ class ExtensionPoint(TraitType):
 
                 extensions = getattr(obj, trait_name)
 
+                # Mutating the list to fire ListChangeEvent
+                # expected from observing item change.
                 if isinstance(event.index, slice):
                     with extensions._internal_sync():
                         if event.added:
@@ -316,31 +329,38 @@ class ExtensionPoint(TraitType):
 
 
 class _ExtensionPointValue(TraitList):
-    """ An instance of _ExtensionPointValue is the value being returned while
-    retrieving the attribute value for an ExtensionPoint trait.
+    """ _ExtensionPointValue is the list being returned while retrieving the
+    attribute value for an ExtensionPoint trait.
 
-    For a given trait ``name`` created using the ExtensionPoint trait type,
-    historically one can get notifications for changes to the extension point
-    by listening to the "name_items" trait using ``on_trait_change``. However,
-    the ExtensionPoint value is not a persisted list that can be mutated.
-    In Traits 6.1, a new notification framework is introduced: ``observe``.
-    Since the naming of "name_items" clashes with listening to mutation on a
-    persisted Traits list/dict/set in the older framework, tt is then is
-    tempting to migrate ``on_trait_change("name_items")`` to
-    ``observe("name:items")``. This class is defined to support such a
-    migration while preventing the list of extensions to be mutated directly.
+    The ExtensionRegistry remains to the source of truth as to what extensions
+    are available for a given extension point ID. This list returned for
+    an ExtensionPoint acts as a proxy to query extensions in an
+    ExtensionRegistry. Users of ExtensionPoint expect to handle a list-like
+    object, and expect to be able to listen to "mutation" on the list.
 
-    Assumptions on the internal values being synchronized with the registry
-    is error-prone, and more importantly, rely on the listener on the extension
-    registry to be hooked up before any changes on the registry has happened.
-    The latter is hard to guarantee. Therefore we always resort to the
-    extension registry to get any values. The registry should hold the
-    single source of truth.
+    However, users are not expected to mutate the list directly. All mutations
+    to extensions are expected to go through the extension registry to maintain
+    consistency.
 
-    The listener machinery, however, does assume the list is synchronized so
-    that the index, removed, added on the change event object is correct.
-    So we make an effort to synchronize the values, but also make an effort
-    to prevent users from modifying the values on the list.
+    The requirement to support ``observe("name:items")`` means this list,
+    associated with `name`, cannot be a property that gets recomputed on every
+    access (enthought/traits/#624), it needs to be cached. Furthermore, users
+    expect to receive change events as if the list was mutated directly, in
+    other words, the expected event object should be a ListChangeEvent.
+
+    Consequently, this ExtensionPointValue is effectively a cached property
+    on the object that defines the ExtensionPoint. As with any cached quantity,
+    it needs to be synchronized with the ExtensionRegistry.
+
+    To ensure that all mutations to the extension registry must go through
+    the extension registry. All methods for mutating the list are nullified,
+    unless it is used internally.
+
+    Assumptions on the internal values being sychronized with the registry
+    break down if the extension registry is mutated before listeners
+    are hooked up between the extension point and the registry. This sequence
+    of events is difficult to enforce. Therefore we always resort to the
+    extension registry for querying values.
 
     Parameters
     ----------
