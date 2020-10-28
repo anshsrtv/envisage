@@ -261,31 +261,6 @@ class ExtensionPointTestCase(unittest.TestCase):
         with self.assertRaises(TraitError):
             getattr(f, "x")
 
-    def test_set_extensions_via_extension_registry(self):
-        """ extension point is updated upon setting extensions via registry.
-        """
-        # Since the list is cached, we will set the extension twice.
-
-        registry = self.registry
-
-        # Add an extension point.
-        registry.add_extension_point(self._create_extension_point("my.ep"))
-
-        # Declare a class that consumes the extension.
-        class Foo(TestBase):
-            x = ExtensionPoint(List(Int), id="my.ep")
-
-        f = Foo()
-
-        # This caches the list
-        f.x
-
-        # when
-        registry.set_extensions("my.ep", [1, 2, 3])
-
-        # then
-        self.assertEqual(f.x, [1, 2, 3])
-
     def test_extension_point_with_no_id(self):
         """ extension point with no Id """
 
