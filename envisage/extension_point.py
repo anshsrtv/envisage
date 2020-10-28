@@ -208,35 +208,31 @@ class ExtensionPoint(TraitType):
                 Registry that maintains the extensions.
             event : ExtensionPointChangedEvent
                 Event for created for the change.
-                If the index is None, this means the entire extensions
-                is set to a new value. If the index is not None, some portion
-                of the list has been modified.
+                If the event.index is None, this means the entire extensions
+                is set to a new value. If the event.index is not None, some
+                portion of the list has been modified.
             """
-            # If an index was specified then we mutate the list
-            # to fire the list items changed event.
             if event.index is not None:
-                name = trait_name + "_items"
-                old = Undefined
-                new = event
+                # We know where in the list is changed.
 
-                # Mutating the _ExtensionPointValue to fire ListChangeEvent
+                # Mutate the _ExtensionPointValue to fire ListChangeEvent
                 # expected from observing item change.
                 getattr(obj, trait_name)._sync_values(event)
 
                 # For on_trait_change('name_items')
-                obj.trait_property_changed(name, old, new)
+                obj.trait_property_changed(
+                    trait_name + "_items", Undefined, event
+                )
 
-            # Otherwise, we fire a normal trait changed event.
             else:
-                name = trait_name
-                old = event.removed
-                new = event.added
-                self._update_cache(obj, name)
-            return
+                # Otherwise, we set the list against and fire a normal trait
+                # changed event.
+                self._update_cache(obj, trait_name)
 
         # In case the cache was created first and the registry is then mutated
-        # before this connect is called. This has the side-effect of
-        # firing another change event, hence allowing changes to be observed
+        # before this ``connect``` is called, the internal cache would be in
+        # an inconsistent state. This also has the side-effect of firing
+        # another change event, hence allowing future changes to be observed
         # without having to access the trait first.
         self._update_cache(obj, trait_name)
 
