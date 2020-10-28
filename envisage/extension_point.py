@@ -18,8 +18,7 @@ import weakref
 
 # Enthought library imports.
 from traits.api import (
-    Any, Event, HasStrictTraits, List, Str, TraitListObject,
-    TraitType, Undefined, provides
+    List, TraitType, Undefined, provides
 )
 # See enthought/traits#1332
 from traits.trait_list_object import TraitList

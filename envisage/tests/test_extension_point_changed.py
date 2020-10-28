@@ -12,10 +12,7 @@
 # Standard library imports.
 import unittest
 
-from traits.api import Int, List, Str
-
 # Local imports.
-from envisage.api import ExtensionPoint, Plugin
 from envisage.tests.test_application import (
     PluginA,
     PluginB,
