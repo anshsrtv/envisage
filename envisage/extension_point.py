@@ -13,6 +13,7 @@
 # Standard library imports.
 import contextlib
 import inspect
+import warnings
 import weakref
 
 # Enthought library imports.
@@ -20,6 +21,8 @@ from traits.api import (
     Any, Event, HasStrictTraits, List, Str, TraitListObject,
     TraitType, Undefined, provides
 )
+# See enthought/traits#1332
+from traits.trait_list_object import TraitList
 
 # Local imports.
 from .i_extension_point import IExtensionPoint
@@ -164,24 +167,39 @@ class ExtensionPoint(TraitType):
     # 'TraitType' interface.
     ###########################################################################
 
-    def _update_cache(self, obj, trait_name, cache_name):
+    def _get_cache_name(self, trait_name):
+        """ Return the cache name for the extension point value associated
+        with a given trait.
+        """
+        return "__envisage_{}".format(trait_name)
+
+    def _update_cache(self, obj, trait_name):
+        """ Update the internal cached value for the extension point and
+        fire change event.
+
+        Parameters
+        ----------
+        obj : HasTraits
+            The object on which an ExtensionPoint is defined.
+        trait_name : str
+            The name of the trait for which ExtensionPoint is defined.
+        """
+        cache_name = self._get_cache_name(trait_name)
         old = obj.__dict__.get(cache_name, Undefined)
         new = (
             _ExtensionPointValue(
-                trait=self.trait_type,
-                object=obj,
-                name=trait_name,
-                value=_get_extensions(obj, trait_name),
+                _get_extensions(obj, trait_name),
             )
         )
+        new._set_reference(obj, trait_name)
         obj.__dict__[cache_name] = new
         obj.trait_property_changed(trait_name, old, new)
 
     def get(self, obj, trait_name):
         """ Trait type getter. """
-        cache_name = "__envisage_{}".format(trait_name)
+        cache_name = self._get_cache_name(trait_name)
         if cache_name not in obj.__dict__:
-            self._update_cache(obj, trait_name, cache_name)
+            self._update_cache(obj, trait_name)
 
         value = obj.__dict__[cache_name]
         # validate again
@@ -198,8 +216,7 @@ class ExtensionPoint(TraitType):
         # for exxample ;^).
         extension_registry.set_extensions(self.id, value)
 
-        cache_name = "__envisage_{}".format(name)
-        self._update_cache(obj, name, cache_name)
+        self._update_cache(obj, name)
 
     ###########################################################################
     # 'ExtensionPoint' interface.
@@ -241,14 +258,15 @@ class ExtensionPoint(TraitType):
                     with extensions._internal_sync():
                         extensions[slice_] = event.added
 
+                # For on_trait_change('name_items')
+                obj.trait_property_changed(name, old, new)
+
             # Otherwise, we fire a normal trait changed event.
             else:
                 name = trait_name
                 old = event.removed
                 new = event.added
-
-            obj.trait_property_changed(name, old, new)
-
+                self._update_cache(obj, name)
             return
 
         extension_registry = self._get_extension_registry(obj)
@@ -299,7 +317,7 @@ class ExtensionPoint(TraitType):
         return extension_registry
 
 
-class _ExtensionPointValue(TraitListObject):
+class _ExtensionPointValue(TraitList):
     """ An instance of _ExtensionPointValue is the value being returned while
     retrieving the attribute value for an ExtensionPoint trait.
 
@@ -324,20 +342,35 @@ class _ExtensionPointValue(TraitListObject):
         super().__init__(*args, **kwargs)
         self._internal_use = False
 
+    # Assumptions on the internal values being synchronized is error-prone,
+    # and more importantly, rely on the listener on the extension
+    # registry to be hooked up before any changes on the registry has happened.
+    # The latter is hard to guarantee. Therefore we always resort to the
+    # extension registry to get any values. The registry should hold the
+    # single source of truth.
+
+    def _set_reference(self, object, name):
+        """ Set references to the HasTraits object and trait name this
+        ExtensionPointValue is defined for.
+        """
+        # FIXME: Do we need weakref here for the object?
+        self._object = object
+        self._name = name
+
     def __eq__(self, other):
         if self._internal_use:
             return super().__eq__(other)
-        return _get_extensions(self.object(), self.name) == other
+        return _get_extensions(self._object, self._name) == other
 
     def __getitem__(self, key):
         if self._internal_use:
             return super().__getitem__(key)
-        return _get_extensions(self.object(), self.name)[key]
+        return _get_extensions(self._object, self._name)[key]
 
     def __len__(self):
         if self._internal_use:
             return super().__len__()
-        return len(_get_extensions(self.object(), self.name))
+        return len(_get_extensions(self._object, self._name))
 
     @contextlib.contextmanager
     def _internal_sync(self):
@@ -349,6 +382,18 @@ class _ExtensionPointValue(TraitListObject):
             yield
         finally:
             self._internal_use = False
+
+    def append(self, object):
+        """ Reimplemented TraitList.append """
+        if not self._internal_use:
+            warnings.warn(
+                "Extension point cannot be mutated directly.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            return
+
+        super().append(object)
 
 
 def _get_extensions(object, name):
