@@ -347,18 +347,21 @@ class _ExtensionPointValue(TraitList):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._internal_use = False
 
-    # Assumptions on the internal values being synchronized is error-prone,
-    # and more importantly, rely on the listener on the extension
-    # registry to be hooked up before any changes on the registry has happened.
-    # The latter is hard to guarantee. Therefore we always resort to the
-    # extension registry to get any values. The registry should hold the
-    # single source of truth.
+        # Flag to control access for mutating the list. Only internal
+        # code can mutate the list. See _internal_sync
+        self._internal_use = False
 
     def _set_reference(self, object, name):
         """ Set references to the HasTraits object and trait name this
         ExtensionPointValue is defined for.
+
+        Parameters
+        ----------
+        obj : HasTraits
+            The object on which an ExtensionPoint is defined.
+        trait_name : str
+            The name of the trait for which ExtensionPoint is defined.
         """
         # FIXME: Do we need weakref here for the object?
         self._object = object
