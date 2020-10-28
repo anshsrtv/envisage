@@ -332,11 +332,8 @@ class ExtensionPointTestCase(unittest.TestCase):
         f.on_trait_change(on_trait_change_handler, "x")
         f.observe(observed_events.append, "x")
 
-        # this step is assumed by ExtensionPoint
-        ExtensionPoint.connect_extension_point_traits(f)
-
         # when
-        f.x = [42]
+        ExtensionPoint.connect_extension_point_traits(f)
 
         # then
         self.assertEqual(len(on_trait_change_events), 1)
@@ -345,7 +342,7 @@ class ExtensionPointTestCase(unittest.TestCase):
         self.assertEqual(event.object, f)
         self.assertEqual(event.name, "x")
         self.assertEqual(event.old, Undefined)
-        self.assertEqual(event.new, [42])
+        self.assertEqual(event.new, [])
 
     def test_extension_point_str_representation(self):
         """ test the string representation of the extension point """

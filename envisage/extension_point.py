@@ -280,6 +280,12 @@ class ExtensionPoint(TraitType):
                 self._update_cache(obj, name)
             return
 
+        # In case the cache was created first and the registry is then mutated
+        # before this connect is called. This has the side-effect of
+        # firing another change event, hence allowing changes to be observed
+        # without having to access the trait first.
+        self._update_cache(obj, trait_name)
+
         extension_registry = self._get_extension_registry(obj)
 
         # Add the listener to the extension registry.
