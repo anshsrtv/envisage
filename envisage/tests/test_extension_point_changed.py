@@ -67,8 +67,10 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         a.x.append(42)
 
         # then
+        # The behaviour between on_trait_change and observe are not the
+        # same here, and is the purpose of observe.
         self.assertIsNone(listener.obj)
-        self.assertEqual(len(events), 0)
+        self.assertEqual(len(events), 1)
 
     def test_append(self):
         """ append """
