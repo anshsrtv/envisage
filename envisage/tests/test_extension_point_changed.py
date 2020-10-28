@@ -69,7 +69,9 @@ class ExtensionPointChangedTestCase(unittest.TestCase):
         self.assertEqual(len(events), 0)
 
     def test_mutate_extension_point_then_modify_from_registry(self):
-
+        """ Mutating the extension point does nothing and should not cause
+        subsequent change event information to become inconsistent.
+        """
         a = PluginA()
         b = PluginB()
         c = PluginC()
