@@ -222,7 +222,7 @@ class ExtensionPoint(TraitType):
                 old = Undefined
                 new = event
 
-                # Mutating the list to fire ListChangeEvent
+                # Mutating the _ExtensionPointValue to fire ListChangeEvent
                 # expected from observing item change.
                 getattr(obj, trait_name)._sync_values(event)
 
